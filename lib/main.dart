@@ -1,8 +1,65 @@
+import 'dart:async';
+import 'package:flutter/widgets.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+// import 'package:flutter_graphview/flutter_graphview.dart';
 import 'package:provider/provider.dart';
+import 'package:path/path.dart';
 
-void main() {
+//import 'pacakge:getwidget/getwidget.dart';
+late Future<Database> database;
+
+
+Future<void> insertChar(Character character) async {
+  // Get a reference to the database.
+  final db = await database;
+
+  // Insert the Dog into the correct table. You might also specify the
+  // `conflictAlgorithm` to use in case the same dog is inserted twice.
+  //
+  // In this case, replace any previous data.
+  await db.insert(
+    'Characters',
+    character.toMap(),
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+}
+
+Future<List<Character>> characters() async {
+  // Get a reference to the database.
+  final db = await database;
+
+  // Query the table for all the dogs.
+  final List<Map<String, Object?>> charMaps = await db.query('Characters');
+
+  // Convert the list of each dog's fields into a list of `Dog` objects.
+  return [
+    for (final {
+          'charid': charid as int,
+          'name': name as String,
+        } in charMaps)
+      Character(charid: charid, name: name),
+  ];
+}
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  final String dbPath = join(await getDatabasesPath(), 'character.db');
+  await deleteDatabase(dbPath);
+  database = openDatabase(
+  join(await getDatabasesPath(), 'character.db'),
+   onCreate: (db, version) {
+    // Run the CREATE TABLE statement on the database.
+    return db.execute(
+      'CREATE TABLE Characters(charid INTEGER PRIMARY KEY, name TEXT)',
+    );
+  },
+  // Set the version. This executes the onCreate function and provides a
+  // path to perform database upgrades and downgrades.
+  version: 1,
+);
+
+
   runApp(MyApp());
 }
 
@@ -14,10 +71,10 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => MyAppState(),
       child: MaterialApp(
-        title: 'Namer App',
+        title: 'PlotWeb',
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         ),
         home: MyHomePage(),
       ),
@@ -32,27 +89,321 @@ class MyAppState extends ChangeNotifier {
 class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
+    //var appState = context.watch<MyAppState>();
 
     return Scaffold(
-      body: Column(
+      appBar: AppBar(title: Text('Home Page')),
+      body: Stack(
+        alignment: Alignment.center,
         children: [
-          Text('A random AWESOME DFKSDF idea:'),
-          Text(appState.current.asLowerCase),
-          ElevatedButton(
-            onPressed: () {
-              print('Sophie pressed!');
-            },
-            child: Text('Sophie'),
+          Positioned(
+            bottom: 600,
+            child: ElevatedButton(
+            style: StandardButtonTheme.primaryButtonStyle,
+              onPressed: () async{
+                   Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CharacterListPage(),
+                  ),
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => UpdatePage()),
+                );
+              },
+              child: Text('Sophie'),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              print('New Character');
-            },
-            child: Text('Add Character'),
+          Positioned(
+          bottom: 100,
+          child: ElevatedButton(
+            style: StandardButtonTheme.primaryButtonStyle,
+              onPressed: () async{
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddCharacter()),
+                );
+                 var fido = Character(name: 'Fido');
+                  await insertChar(fido);
+
+                  // Fetch all characters from the database to verify
+                  List<Character> allCharacters = await characters();
+                  print('Characters in the database:');
+                  for (var character in allCharacters) {
+                    print(character); // This will print the character toString().
+                  }
+              },
+              child: Text('Add Character'),
+          ),
+        )
+        ]
+      ),
+    );
+  }
+}
+
+class CharacterPage extends StatelessWidget {
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var pair = appState.current;
+    return Scaffold(
+      appBar: AppBar(title: Text('Character Page')),
+      body: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+          bottom: 600,
+          child: ElevatedButton(
+            style: StandardButtonTheme.primaryButtonStyle,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => UpdatePage()),
+                );
+              },
+              child: Text('Update'),
+            ),
+          ),
+          Positioned(
+          bottom: 400,
+          child: ElevatedButton(
+            style: StandardButtonTheme.primaryButtonStyle,
+              onPressed: () {
+                print('delete');
+              },
+              child: Text('Delete'),
+            ),
+          ),
+          Positioned(
+            bottom: 200,
+            child: ElevatedButton(
+              style: StandardButtonTheme.primaryButtonStyle,
+                onPressed: () {
+                  print('Close');
+                  Navigator.pop(context);
+                },
+                child: Text('Close'),
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+class UpdatePage extends StatelessWidget {
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var pair = appState.current;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(' Update Character ')),
+      body: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+          bottom: 100,
+          child: ElevatedButton(
+            style: StandardButtonTheme.primaryButtonStyle,
+              onPressed: () {
+                print('update');
+                Navigator.pop(context);
+              },
+              child: Text('Done'),
+          ),
+        )
+        ]
+      ),
+    );
+  }
+}
+
+class AddCharacter extends StatelessWidget {
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var pair = appState.current;
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Add Character')),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+            child: Positioned(
+              bottom: 600,
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  border: UnderlineInputBorder(),
+                  hintText: "Name:",
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 50),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+            child: Positioned(
+              bottom: 400,
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  border: UnderlineInputBorder(),
+                  hintText: "Add Relationships",
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 50),
+          Positioned(
+            bottom: 200,
+            child: ElevatedButton(
+              style: StandardButtonTheme.primaryButtonStyle,
+                onPressed: () async {
+                  print('saving');
+                  Navigator.pop(context);
+                },
+                child: Text('Save Character'),
+            ),
+          ),
+          SizedBox(height: 50),
+          Positioned(
+            bottom: 100,
+            child: ElevatedButton(
+              style: StandardButtonTheme.primaryButtonStyle,
+                onPressed: () {
+                  print('discard');
+                  Navigator.pop(context);
+                },
+                child: Text('Discard Changes'),
+            ),
+          )
+        ]
+      ),
+    );
+  }
+}
+
+class Character {
+  final int? charid;
+  final String name;
+
+  const Character({
+    this.charid,
+    required this.name
+  });
+    Map<String, Object?> toMap() {
+    return {
+      if (charid != null) 'charid': charid,
+      'name': name
+    };
+  }
+
+  @override
+   String toString() {
+    return 'Character{id: $charid, name: $name}';
+  }
+
+}
+
+class CharacterListPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Characters List'),
+      ),
+      body: FutureBuilder<List<Character>>(
+        future: characters(), // your characters() future from your code
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            // If we got data, show it in a ListView
+            return ListView.builder(
+              itemCount: snapshot.data?.length ?? 0,
+              itemBuilder: (context, index) {
+                Character character = snapshot.data![index];
+                return ListTile(
+                  title: Text(character.name),
+                  // You can add more detail like an onTap action or a subtitle for Character ID
+                );
+              },
+            );
+          } else {
+            // While fetching, show a loading spinner.
+            return Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
+    );
+  }
+}
+
+
+class StandardButtonTheme {
+  static final ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
+    backgroundColor: Color.fromARGB(255, 106, 14, 7),
+    textStyle: TextStyle(fontSize: 30),
+    foregroundColor: Colors.white,
+    minimumSize: Size(200, 50),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.horizontal())
+  );
+}
+
+/* Graph stuff :) */
+
+class Node {
+  final String label;
+  final List<Node> children;
+
+  Node(this.label, [this.children = const []]);
+}
+
+Node rootNode = Node(
+  'Root',
+  [
+    Node('Node 1', [Node('Node 1.1'), Node('Node 1.2')]),
+    Node('Node 2', [Node('Node 2.1'), Node('Node 2.2')]),
+  ],
+);
+
+// class GraphPage extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Node Graph'),
+//       ),
+//       body: Center(
+//         child: GraphView(
+//           graph: graph(rootNode),
+//         ),
+//       ),
+//     );
+//   }
+
+//   Widget graph(Node node) {
+//     return Graph(
+//       nodes: buildGraph(node),
+//     );
+//   }
+
+//   List<NodeWidget> buildGraph(Node node) {
+//     return [
+//       NodeWidget(
+//         label: node.label,
+//         child: Column(
+//           children: [
+//             for (var child in node.children) ...buildGraph(child),
+//           ],
+//         ),
+//       ),
+//     ];
+//   }
+// }
+
+
+// https://docs.flutter.dev/cookbook/persistence/sqlite
