@@ -47,9 +47,9 @@ class MyHomePage extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              print('Jim pressed!');
+              print('New Character');
             },
-            child: Text('Jim'),
+            child: Text('Add Character'),
           ),
         ],
       ),
