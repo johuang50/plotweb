@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'package:flutter/widgets.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter_graphview/flutter_graphview.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart';
+import 'package:graphview/GraphView.dart';
 
 //import 'pacakge:getwidget/getwidget.dart';
 late Future<Database> database;
@@ -76,7 +75,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         ),
-        home: MyHomePage(),
+        home: GraphScreen(),
       ),
     );
   }
@@ -355,55 +354,83 @@ class StandardButtonTheme {
 
 /* Graph stuff :) */
 
-class Node {
-  final String label;
-  final List<Node> children;
+// class Node {
+//   final String label;
+//   final List<Node> children;
 
-  Node(this.label, [this.children = const []]);
-}
-
-Node rootNode = Node(
-  'Root',
-  [
-    Node('Node 1', [Node('Node 1.1'), Node('Node 1.2')]),
-    Node('Node 2', [Node('Node 2.1'), Node('Node 2.2')]),
-  ],
-);
-
-// class GraphPage extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Node Graph'),
-//       ),
-//       body: Center(
-//         child: GraphView(
-//           graph: graph(rootNode),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget graph(Node node) {
-//     return Graph(
-//       nodes: buildGraph(node),
-//     );
-//   }
-
-//   List<NodeWidget> buildGraph(Node node) {
-//     return [
-//       NodeWidget(
-//         label: node.label,
-//         child: Column(
-//           children: [
-//             for (var child in node.children) ...buildGraph(child),
-//           ],
-//         ),
-//       ),
-//     ];
-//   }
+//   Node(this.label, [this.children = const []]);
 // }
 
+// Node rootNode = Node(
+//   'Root',
+//   [
+//     Node('Node 1', [Node('Node 1.1'), Node('Node 1.2')]),
+//     Node('Node 2', [Node('Node 2.1'), Node('Node 2.2')]),
+//   ],
+// );
+
+Widget getButtonWidget(int id) {
+  return ElevatedButton(
+    onPressed: () {
+      print('Button $id pressed');
+      // Handle button press
+    },
+    child: Text('Button $id'),
+  );
+}
+
+class GraphScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    Graph graph = Graph()..isTree = true;
+
+    Node node1 = Node(getButtonWidget(1));
+    Node node2 = Node(getButtonWidget(2));
+    Node node3 = Node(getButtonWidget(3));
+    // ... add more nodes as needed
+
+    graph.addEdge(node1, node2);
+    graph.addEdge(node1, node3);
+    // ... add more edges as needed
+
+    // Define layout algorithm
+    BuchheimWalkerConfiguration configuration = BuchheimWalkerConfiguration();
+    BuchheimWalkerAlgorithm layoutAlgorithm = BuchheimWalkerAlgorithm(
+      configuration,
+      TreeEdgeRenderer(configuration),
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Graph of Buttons'),
+      ),
+      body: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: <Widget>[
+          Expanded(
+            child: InteractiveViewer(
+              constrained: false,
+              boundaryMargin: EdgeInsets.all(100),
+              minScale: 0.01,
+              maxScale: 5.6,
+              child: GraphView(
+                graph: graph,
+                algorithm: layoutAlgorithm,
+                paint: Paint()
+                  ..color = Colors.green
+                  ..strokeWidth = 1
+                  ..style = PaintingStyle.stroke,
+                builder: (Node node) {
+                  // Return a widget for each node
+                  return node.data as Widget;
+                }
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // https://docs.flutter.dev/cookbook/persistence/sqlite
