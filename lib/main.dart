@@ -75,7 +75,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         ),
-        home: GraphScreen(),
+        home: MyHomePage(),
       ),
     );
   }
@@ -88,13 +88,29 @@ class MyAppState extends ChangeNotifier {
 class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    //var appState = context.watch<MyAppState>();
+    Graph graph = Graph()..isTree = true;
 
+    // Add your nodes and edges here
+    Node node1 = Node(IdButtonWidget(id: 1));
+    Node node2 = Node(IdButtonWidget(id: 2));
+    Node node3 = Node(IdButtonWidget(id: 3));
+    graph.addEdge(node1, node2);
+    graph.addEdge(node1, node3);
+    // ... continue adding nodes and edges as needed
+
+    // Define layout algorithm
+    BuchheimWalkerConfiguration configuration = BuchheimWalkerConfiguration();
+    BuchheimWalkerAlgorithm layoutAlgorithm = BuchheimWalkerAlgorithm(
+      configuration,
+      TreeEdgeRenderer(configuration),
+    );
+    
     return Scaffold(
       appBar: AppBar(title: Text('Home Page')),
       body: Stack(
         alignment: Alignment.center,
         children: [
+          // Positioned widget for the Sophie button
           Positioned(
             bottom: 600,
             child: ElevatedButton(
@@ -112,10 +128,12 @@ class MyHomePage extends StatelessWidget {
               },
               child: Text('Sophie'),
             ),
+            // ... Existing code for the Sophie button
           ),
+          // Positioned widget for the Add Character button
           Positioned(
-          bottom: 100,
-          child: ElevatedButton(
+            bottom: 100,
+            child: ElevatedButton(
             style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () async{
                 Navigator.push(
@@ -134,9 +152,43 @@ class MyHomePage extends StatelessWidget {
               },
               child: Text('Add Character'),
           ),
-        )
-        ]
+            // ... Existing code for the Add Character button
+          ),
+          // Add a container for the GraphView
+          Positioned(
+            bottom: 300, // Adjust the position as needed
+            child: Container(
+              width: 300, // Set the width and height as needed
+              height: 200,
+              child: InteractiveViewer(
+                constrained: false,
+                boundaryMargin: EdgeInsets.all(100),
+                minScale: 0.01,
+                maxScale: 5.0,
+                child: GraphView(
+                  graph: graph,
+                  algorithm: layoutAlgorithm,
+                  builder: (Node node) => node.data as Widget,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class IdButtonWidget extends StatelessWidget {
+  final int id;
+  
+  IdButtonWidget({required this.id});
+  
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () => print('Button $id pressed'),
+      child: Text('Button $id'),
     );
   }
 }
@@ -368,69 +420,5 @@ class StandardButtonTheme {
 //     Node('Node 2', [Node('Node 2.1'), Node('Node 2.2')]),
 //   ],
 // );
-
-Widget getButtonWidget(int id) {
-  return ElevatedButton(
-    onPressed: () {
-      print('Button $id pressed');
-      // Handle button press
-    },
-    child: Text('Button $id'),
-  );
-}
-
-class GraphScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    Graph graph = Graph()..isTree = true;
-
-    Node node1 = Node(getButtonWidget(1));
-    Node node2 = Node(getButtonWidget(2));
-    Node node3 = Node(getButtonWidget(3));
-    // ... add more nodes as needed
-
-    graph.addEdge(node1, node2);
-    graph.addEdge(node1, node3);
-    // ... add more edges as needed
-
-    // Define layout algorithm
-    BuchheimWalkerConfiguration configuration = BuchheimWalkerConfiguration();
-    BuchheimWalkerAlgorithm layoutAlgorithm = BuchheimWalkerAlgorithm(
-      configuration,
-      TreeEdgeRenderer(configuration),
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Graph of Buttons'),
-      ),
-      body: Column(
-        mainAxisSize: MainAxisSize.max,
-        children: <Widget>[
-          Expanded(
-            child: InteractiveViewer(
-              constrained: false,
-              boundaryMargin: EdgeInsets.all(100),
-              minScale: 0.01,
-              maxScale: 5.6,
-              child: GraphView(
-                graph: graph,
-                algorithm: layoutAlgorithm,
-                paint: Paint()
-                  ..color = Colors.green
-                  ..strokeWidth = 1
-                  ..style = PaintingStyle.stroke,
-                builder: (Node node) {
-                  // Return a widget for each node
-                  return node.data as Widget;
-                }
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // https://docs.flutter.dev/cookbook/persistence/sqlite
