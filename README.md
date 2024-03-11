@@ -1,6 +1,11 @@
-# plot_web_app
+# PlotWeb
 
-A new Flutter project.
+## Authors
+Joshua Huang (@johuang50), Maya Alam, Jad Yazbeck, Luciana Solorzano
+
+## Overview
+
+PlotWeb helps users keep track of plot developments and character relationships through reminders.
 
 ## Getting Started
 
