@@ -91,19 +91,19 @@ class MyHomePage extends StatelessWidget {
     Graph graph = Graph()..isTree = true;
 
     // Add your nodes and edges here
-    Node node1 = Node(IdButtonWidget(id: 1));
-    Node node2 = Node(IdButtonWidget(id: 2));
-    Node node3 = Node(IdButtonWidget(id: 3));
-    graph.addEdge(node1, node2);
-    graph.addEdge(node1, node3);
+    Node node1 = Node(IdButtonWidget(id: "Sophie"));
+    Node node2 = Node(IdButtonWidget(id: "Fido"));
+    Node node3 = Node(IdButtonWidget(id: "Lucy"));
+    Node node4 = Node(IdButtonWidget(id: "Linus"));
+
+    graph.addEdge(node1, node2, paint: Paint()..color = Colors.grey);
+    graph.addEdge(node1, node3, paint: Paint()..color = Colors.grey);
+    graph.addEdge(node2, node3, paint: Paint()..color = Colors.grey);
+    graph.addEdge(node4, node3, paint: Paint()..color = Colors.grey);
+    graph.addEdge(node4, node1, paint: Paint()..color = Colors.grey);
     // ... continue adding nodes and edges as needed
 
-    // Define layout algorithm
-    BuchheimWalkerConfiguration configuration = BuchheimWalkerConfiguration();
-    BuchheimWalkerAlgorithm layoutAlgorithm = BuchheimWalkerAlgorithm(
-      configuration,
-      TreeEdgeRenderer(configuration),
-    );
+    var frAlgo = FruchtermanReingoldAlgorithm();
     
     return Scaffold(
       appBar: AppBar(title: Text('Home Page')),
@@ -167,7 +167,7 @@ class MyHomePage extends StatelessWidget {
                 maxScale: 5.0,
                 child: GraphView(
                   graph: graph,
-                  algorithm: layoutAlgorithm,
+                  algorithm: frAlgo,
                   builder: (Node node) => node.data as Widget,
                 ),
               ),
@@ -180,7 +180,7 @@ class MyHomePage extends StatelessWidget {
 }
 
 class IdButtonWidget extends StatelessWidget {
-  final int id;
+  final String id;
   
   IdButtonWidget({required this.id});
   
@@ -188,7 +188,7 @@ class IdButtonWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () => print('Button $id pressed'),
-      child: Text('Button $id'),
+      child: Text(id),
     );
   }
 }
