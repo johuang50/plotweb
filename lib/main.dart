@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:english_words/english_words.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 // import 'package:flutter_graphview/flutter_graphview.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart';
+import 'package:flutter/material.dart';
 
 //import 'pacakge:getwidget/getwidget.dart';
 late Future<Database> database;
@@ -26,6 +28,21 @@ Future<void> insertChar(Character character) async {
   );
 }
 
+// Future<void>InsertRel(Character character1, Character character2) async {
+//   // Get a reference to the database.
+//   final db = await database;
+
+//   // Insert the Dog into the correct table. You might also specify the
+//   // `conflictAlgorithm` to use in case the same dog is inserted twice.
+//   //
+//   // In this case, replace any previous data.
+//   await db.insert(
+//     'Rels',
+//     character.toMap(),
+//     conflictAlgorithm: ConflictAlgorithm.replace,
+//   );
+// }
+
 Future<List<Character>> characters() async {
   // Get a reference to the database.
   final db = await database;
@@ -45,13 +62,17 @@ Future<List<Character>> characters() async {
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   final String dbPath = join(await getDatabasesPath(), 'character.db');
-  await deleteDatabase(dbPath);
+  await deleteDatabase(dbPath);     //THIS L
   database = openDatabase(
   join(await getDatabasesPath(), 'character.db'),
-   onCreate: (db, version) {
+   onCreate: (db, version) async {
     // Run the CREATE TABLE statement on the database.
-    return db.execute(
-      'CREATE TABLE Characters(charid INTEGER PRIMARY KEY, name TEXT)',
+    await db.execute(
+    'CREATE TABLE Characters(charid INTEGER PRIMARY KEY, name TEXT) ',
+   );
+     await db.execute(
+    'CREATE TABLE Rels(charid1 INTEGER, charid2 INTEGER, ' +
+    'PRIMARY KEY (charid1, charid2), FOREIGN KEY (charid1) references Characters(charid) ON DELETE CASCADE, FOREIGN KEY (charid2) references Characters(charid) ON DELETE CASCADE) ', 
     );
   },
   // Set the version. This executes the onCreate function and provides a
@@ -104,7 +125,7 @@ class MyHomePage extends StatelessWidget {
                    Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => CharacterListPage(),
+                    builder: (context) => UpdatePage(),
                   ),
                 // Navigator.push(
                 //   context,
@@ -123,15 +144,9 @@ class MyHomePage extends StatelessWidget {
                   context,
                   MaterialPageRoute(builder: (context) => AddCharacter()),
                 );
-                 var fido = Character(name: 'Fido');
-                  await insertChar(fido);
+  
 
                   // Fetch all characters from the database to verify
-                  List<Character> allCharacters = await characters();
-                  print('Characters in the database:');
-                  for (var character in allCharacters) {
-                    print(character); // This will print the character toString().
-                  }
               },
               child: Text('Add Character'),
           ),
@@ -195,7 +210,6 @@ class UpdatePage extends StatelessWidget {
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
     var pair = appState.current;
-
     return Scaffold(
       appBar: AppBar(title: Text(' Update Character ')),
       body: Stack(
@@ -218,71 +232,106 @@ class UpdatePage extends StatelessWidget {
   }
 }
 
-class AddCharacter extends StatelessWidget {
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
+class AddCharacter extends StatefulWidget {
+  @override
+  _AddCharacterState createState() => _AddCharacterState();
+}
 
+class _AddCharacterState extends State<AddCharacter> {
+  TextEditingController nameController = TextEditingController();
+  TextEditingController relationshipsController = TextEditingController();
+
+  @override
+  void dispose() {
+    // Dispose the controllers when the widget is removed from the
+    // widget tree to avoid memory leaks.
+    nameController.dispose();
+    relationshipsController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>(); 
+    var pair = appState.current;
+    String nameString = "";
+    String relationshipsString = "";
+    Map<String, bool> options = {
+  };
+    
+    // _MyFormState form = _MyFormState(); // Remove this if you are not using it elsewhere
     return Scaffold(
       appBar: AppBar(title: Text('Add Character')),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: Positioned(
-              bottom: 600,
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  border: UnderlineInputBorder(),
-                  hintText: "Name:",
-                ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: nameController, // Attach the controller here
+              decoration: const InputDecoration(
+                border: UnderlineInputBorder(),
+                labelText: "Character Name",
+                hintText: "Enter character's name",
               ),
             ),
-          ),
-          SizedBox(height: 50),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: Positioned(
-              bottom: 400,
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  border: UnderlineInputBorder(),
-                  hintText: "Add Relationships",
-                ),
-              ),
+            SizedBox(height: 50),
+            ListView.builder(
+              shrinkWrap: true,
+              itemCount: options.length,
+              itemBuilder: (BuildContext context, int index) {
+                String key = options.keys.elementAt(index);
+                CheckboxListTile(
+                  title: Text(key),
+                  value: options[key]!,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      options[key] = value!;
+                    });
+                  },
+                );
+              },
             ),
-          ),
-          SizedBox(height: 50),
-          Positioned(
-            bottom: 200,
-            child: ElevatedButton(
-              style: StandardButtonTheme.primaryButtonStyle,
+            SizedBox(height: 50),
+            Center(
+              child: ElevatedButton(
+                style: StandardButtonTheme.primaryButtonStyle,
                 onPressed: () async {
-                  print('saving');
+                  // Here we get the values from the text fields
+                  nameString = nameController.text;
+                  List<String> selectedOptions = [];
+                  options.forEach((key, value) {
+                    if (value) {
+                      selectedOptions.add(key);
+                    }
+                  });
+                  print('Selected Options: $selectedOptions');
+                  // var fido = Character(name: nameString);
+                  // await insertChar(fido);
                   Navigator.pop(context);
                 },
                 child: Text('Save Character'),
+              ),
             ),
-          ),
-          SizedBox(height: 50),
-          Positioned(
-            bottom: 100,
-            child: ElevatedButton(
-              style: StandardButtonTheme.primaryButtonStyle,
-                onPressed: () {
-                  print('discard');
+            SizedBox(height: 50),
+            Center(
+              child: ElevatedButton(
+                style: StandardButtonTheme.primaryButtonStyle, 
+                onPressed: () async {
+                  // Here we get the values from the text fields
                   Navigator.pop(context);
                 },
-                child: Text('Discard Changes'),
+                child: Text('Discard'),
             ),
-          )
-        ]
+            ),// ... (other buttons or widgets can go here)
+          ],
+        ),
       ),
     );
   }
 }
+
 
 class Character {
   final int? charid;
@@ -298,6 +347,7 @@ class Character {
       'name': name
     };
   }
+  
 
   @override
    String toString() {
@@ -305,6 +355,8 @@ class Character {
   }
 
 }
+
+
 
 class CharacterListPage extends StatelessWidget {
   @override
@@ -329,6 +381,7 @@ class CharacterListPage extends StatelessWidget {
                 return ListTile(
                   title: Text(character.name),
                   // You can add more detail like an onTap action or a subtitle for Character ID
+                  
                 );
               },
             );
