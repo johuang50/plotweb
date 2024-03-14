@@ -55,6 +55,7 @@ Future<List<Character>> characters() async {
       Character(charid: charid, name: name),
   ];
 }
+
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   final String dbPath = join(await getDatabasesPath(), 'character.db');
@@ -118,6 +119,7 @@ class MyHomePage extends StatelessWidget {
     //  nodes[character.charid ?? 0] =  Node(IdButtonWidget(name: character.name, id: character.charid));
     //}
 
+
     //when user finishes adding character, add nodes to the graph using vector of 
     //nodes for relationships between characters 
 
@@ -167,6 +169,8 @@ class MyHomePage extends StatelessWidget {
             child: ElevatedButton(
             style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () async{
+                fetchData();
+                print("fetching");
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => AddCharacter()),
@@ -298,14 +302,14 @@ class AddCharacter extends StatefulWidget {
   _AddCharacterState createState() => _AddCharacterState();
 }
 
-Future<List<Character>> charList = characters();
-List<String> options = [];
-Map<String, int?> char_to_id = {};
+Map<String, int?> char_to_id = {}; 
 
 void fetchData() async {
-  List<Character> characters = await charList;
-  characters.forEach((character) {
-    options.add(character.name);
+  char_to_id = {};
+  Future<List<Character>> charList = characters();
+  List<Character> chars = await charList;
+  chars.forEach((character) {
+    print("Fetched:");
     char_to_id[character.name] = character.charid;
   });
 }
@@ -376,6 +380,7 @@ class _AddCharacterState extends State<AddCharacter> {
                   print('Name: $nameString');
                   print('Selected Options: $_selectedOptions');
                   Character character = Character(name: nameString);
+                  insertChar(character);
                   //selcted_options are the relationships :)
                 
                   Navigator.pop(context);
