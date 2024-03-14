@@ -109,13 +109,17 @@ class MyHomePage extends StatelessWidget {
     Graph graph = Graph()..isTree = true;
 
     //Load graph with characters already in the database
-    //List<String> prev_chars = characters();
-    //vector[256]
-    //for(for character in prev_chars){
-    //  Node temp = Node(IdButtonWidget(name: character.name, id: character.charid));
+    Future<List<Character>> prevCharsFuture = characters();
+
+    List<Node> nodes = List<Node>.filled(441, Node(IdButtonWidget(name: "SOLOWAY", id: -12)));
+    //List<Character> prevChars = await prevCharsFuture;
+
+    //for(Character character in prevChars){
+    //  nodes[character.charid ?? 0] =  Node(IdButtonWidget(name: character.name, id: character.charid));
     //}
+
     //when user finishes adding character, add nodes to the graph using vector of 
-    //nnodes for relationships between characters 
+    //nodes for relationships between characters 
 
     // Add your nodes and edges here
     Node node1 = Node(IdButtonWidget(name: "Sophie", id: 1));
@@ -202,7 +206,7 @@ class MyHomePage extends StatelessWidget {
 
 class IdButtonWidget extends StatelessWidget {
   final String name;
-  final int id;
+  final int? id;
   IdButtonWidget({required this.name, required this.id});
   
   @override
@@ -294,18 +298,22 @@ class AddCharacter extends StatefulWidget {
   _AddCharacterState createState() => _AddCharacterState();
 }
 
+Future<List<Character>> charList = characters();
+List<String> options = [];
+Map<String, int?> char_to_id = {};
+
+void fetchData() async {
+  List<Character> characters = await charList;
+  characters.forEach((character) {
+    options.add(character.name);
+    char_to_id[character.name] = character.charid;
+  });
+}
+
 class _AddCharacterState extends State<AddCharacter> {
   TextEditingController nameController = TextEditingController();
   TextEditingController relationshipsController = TextEditingController();
-
   List<String> _selectedOptions = [];
-  List<String> _options = [
-    'Option 1',
-    'Option 2',
-    'Option 3',
-    'Option 4',
-    'Option 5',
-  ];
 
   @override
   void dispose() {
@@ -340,7 +348,7 @@ class _AddCharacterState extends State<AddCharacter> {
                 border: OutlineInputBorder(),
               ),
               value: _selectedOptions.isNotEmpty ? _selectedOptions : null,
-              items: _options.map((String option) {
+              items: char_to_id.keys.toList().map((String option) {
                 return DropdownMenuItem(
                   value: option,
                   child: Text(option),
@@ -367,6 +375,9 @@ class _AddCharacterState extends State<AddCharacter> {
                   String nameString = nameController.text;
                   print('Name: $nameString');
                   print('Selected Options: $_selectedOptions');
+                  Character character = Character(name: nameString);
+                  //selcted_options are the relationships :)
+                
                   Navigator.pop(context);
                 },
                 child: Text('Save Character'),
@@ -387,105 +398,6 @@ class _AddCharacterState extends State<AddCharacter> {
     );
   }
 }
-
-
-// class AddCharacter extends StatefulWidget {
-//   @override
-//   _AddCharacterState createState() => _AddCharacterState();
-// }
-
-// class _AddCharacterState extends State<AddCharacter> {
-//   TextEditingController nameController = TextEditingController();
-//   TextEditingController relationshipsController = TextEditingController();
-
-//   @override
-//   void dispose() {
-//     nameController.dispose();
-//     relationshipsController.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     var appState = context.watch<MyAppState>(); 
-//     var pair = appState.current;
-//     String nameString = "";
-//     String relationshipsString = "";
-//     Map<String, bool> options = {
-//   };
-    
-//     // _MyFormState form = _MyFormState(); // Remove this if you are not using it elsewhere
-//     return Scaffold(
-//       appBar: AppBar(title: Text('Add Character')),
-//       body: Padding(
-//         padding: const EdgeInsets.all(16.0),
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             TextFormField(
-//               controller: nameController, // Attach the controller here
-//               decoration: const InputDecoration(
-//                 border: UnderlineInputBorder(),
-//                 labelText: "Character Name",
-//                 hintText: "Enter character's name",
-//               ),
-//             ),
-//             SizedBox(height: 50),
-//             // ListView.builder(
-//             //   shrinkWrap: true,
-//             //   itemCount: options.length,
-//             //   itemBuilder: (BuildContext context, int index) {
-//             //     String key = options.keys.elementAt(index);
-//             //     CheckboxListTile(
-//             //       title: Text(key),
-//             //       value: options[key]!,
-//             //       onChanged: (bool? value) {
-//             //         setState(() {
-//             //           options[key] = value!;
-//             //         });
-//             //       },
-//             //     );
-//             //   },
-//             // ),
-//             SizedBox(height: 50),
-//             Center(
-//               child: ElevatedButton(
-//                 style: StandardButtonTheme.primaryButtonStyle,
-//                 onPressed: () async {
-//                   // Here we get the values from the text fields
-//                   nameString = nameController.text;
-//                   List<String> selectedOptions = [];
-//                   options.forEach((key, value) {
-//                     if (value) {
-//                       selectedOptions.add(key);
-//                     }
-//                   });
-//                   print('Selected Options: $selectedOptions');
-//                   // var fido = Character(name: nameString);
-//                   // await insertChar(fido);
-//                   Navigator.pop(context);
-//                 },
-//                 child: Text('Save Character'),
-//               ),
-//             ),
-//             SizedBox(height: 50),
-//             Center(
-//               child: ElevatedButton(
-//                 style: StandardButtonTheme.primaryButtonStyle, 
-//                 onPressed: () async {
-//                   // Here we get the values from the text fields
-//                   Navigator.pop(context);
-//                 },
-//                 child: Text('Discard'),
-//             ),
-//             ),// ... (other buttons or widgets can go here)
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
 
 
 class Character {
@@ -511,6 +423,26 @@ class Character {
 
 }
 
+class Relationships {
+  final int? id1;
+  final int? id2;
+
+  const Relationships({
+    required this.id1,
+    required this.id2
+  });
+    Map<String, Object?> toMap() {
+    return {
+      'id1': id1,
+      'id2': id2,
+    };
+  }
+
+   @override
+   String toString() {
+    return 'Relationships{id1: $int?, id2: $int?}';
+  }
+}
 
 
 class CharacterListPage extends StatelessWidget {
