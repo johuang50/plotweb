@@ -44,10 +44,9 @@ Future<List<Character>> characters() async {
   // Get a reference to the database.
   final db = await database;
 
-  // Query the table for all the dogs.
+  // Query the table for all the characters.
   final List<Map<String, Object?>> charMaps = await db.query('Characters');
 
-  // Convert the list of each dog's fields into a list of `Dog` objects.
   return [
     for (final {
           'charid': charid as int,
@@ -109,11 +108,20 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     Graph graph = Graph()..isTree = true;
 
+    //Load graph with characters already in the database
+    //List<String> prev_chars = characters();
+    //vector[256]
+    //for(for character in prev_chars){
+    //  Node temp = Node(IdButtonWidget(name: character.name, id: character.charid));
+    //}
+    //when user finishes adding character, add nodes to the graph using vector of 
+    //nnodes for relationships between characters 
+
     // Add your nodes and edges here
-    Node node1 = Node(IdButtonWidget(id: "Sophie"));
-    Node node2 = Node(IdButtonWidget(id: "Fido"));
-    Node node3 = Node(IdButtonWidget(id: "Lucy"));
-    Node node4 = Node(IdButtonWidget(id: "Linus"));
+    Node node1 = Node(IdButtonWidget(name: "Sophie", id: 1));
+    Node node2 = Node(IdButtonWidget(name: "Fido", id: 2));
+    Node node3 = Node(IdButtonWidget(name: "Lucy", id: 3));
+    Node node4 = Node(IdButtonWidget(name: "Linus", id: 4));
 
     graph.addEdge(node1, node2, paint: Paint()..color = Colors.grey);
     graph.addEdge(node1, node3, paint: Paint()..color = Colors.grey);
@@ -193,15 +201,15 @@ class MyHomePage extends StatelessWidget {
 }
 
 class IdButtonWidget extends StatelessWidget {
-  final String id;
-  
-  IdButtonWidget({required this.id});
+  final String name;
+  final int id;
+  IdButtonWidget({required this.name, required this.id});
   
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () => print('Button $id pressed'),
-      child: Text(id),
+      onPressed: () => print('Button $name pressed'),
+      child: Text(name),
     );
   }
 }
@@ -290,10 +298,17 @@ class _AddCharacterState extends State<AddCharacter> {
   TextEditingController nameController = TextEditingController();
   TextEditingController relationshipsController = TextEditingController();
 
+  List<String> _selectedOptions = [];
+  List<String> _options = [
+    'Option 1',
+    'Option 2',
+    'Option 3',
+    'Option 4',
+    'Option 5',
+  ];
+
   @override
   void dispose() {
-    // Dispose the controllers when the widget is removed from the
-    // widget tree to avoid memory leaks.
     nameController.dispose();
     relationshipsController.dispose();
     super.dispose();
@@ -301,14 +316,6 @@ class _AddCharacterState extends State<AddCharacter> {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>(); 
-    var pair = appState.current;
-    String nameString = "";
-    String relationshipsString = "";
-    Map<String, bool> options = {
-  };
-    
-    // _MyFormState form = _MyFormState(); // Remove this if you are not using it elsewhere
     return Scaffold(
       appBar: AppBar(title: Text('Add Character')),
       body: Padding(
@@ -325,61 +332,160 @@ class _AddCharacterState extends State<AddCharacter> {
                 hintText: "Enter character's name",
               ),
             ),
-            SizedBox(height: 50),
-            ListView.builder(
-              shrinkWrap: true,
-              itemCount: options.length,
-              itemBuilder: (BuildContext context, int index) {
-                String key = options.keys.elementAt(index);
-                CheckboxListTile(
-                  title: Text(key),
-                  value: options[key]!,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      options[key] = value!;
-                    });
-                  },
+            SizedBox(height: 20),
+            DropdownButtonFormField(
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: 'Select Relationships',
+                border: OutlineInputBorder(),
+              ),
+              value: _selectedOptions.isNotEmpty ? _selectedOptions : null,
+              items: _options.map((String option) {
+                return DropdownMenuItem(
+                  value: option,
+                  child: Text(option),
                 );
+              }).toList(),
+              onChanged: (selectedOptions) {
+                setState(() {
+                  _selectedOptions = (selectedOptions as List<String>);
+                });
+              },
+              // This enables multiple selection
+              // In this case, we can't set value to null
+              // Instead, we use an empty list for no selection
+              onSaved: (selectedOptions) {
+                setState(() {
+                  _selectedOptions = (selectedOptions as List<String>);
+                });
               },
             ),
-            SizedBox(height: 50),
+            SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                style: StandardButtonTheme.primaryButtonStyle,
                 onPressed: () async {
-                  // Here we get the values from the text fields
-                  nameString = nameController.text;
-                  List<String> selectedOptions = [];
-                  options.forEach((key, value) {
-                    if (value) {
-                      selectedOptions.add(key);
-                    }
-                  });
-                  print('Selected Options: $selectedOptions');
-                  // var fido = Character(name: nameString);
-                  // await insertChar(fido);
+                  String nameString = nameController.text;
+                  print('Name: $nameString');
+                  print('Selected Options: $_selectedOptions');
                   Navigator.pop(context);
                 },
                 child: Text('Save Character'),
               ),
             ),
-            SizedBox(height: 50),
+            SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                style: StandardButtonTheme.primaryButtonStyle, 
                 onPressed: () async {
-                  // Here we get the values from the text fields
                   Navigator.pop(context);
                 },
                 child: Text('Discard'),
+              ),
             ),
-            ),// ... (other buttons or widgets can go here)
           ],
         ),
       ),
     );
   }
 }
+
+
+// class AddCharacter extends StatefulWidget {
+//   @override
+//   _AddCharacterState createState() => _AddCharacterState();
+// }
+
+// class _AddCharacterState extends State<AddCharacter> {
+//   TextEditingController nameController = TextEditingController();
+//   TextEditingController relationshipsController = TextEditingController();
+
+//   @override
+//   void dispose() {
+//     nameController.dispose();
+//     relationshipsController.dispose();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     var appState = context.watch<MyAppState>(); 
+//     var pair = appState.current;
+//     String nameString = "";
+//     String relationshipsString = "";
+//     Map<String, bool> options = {
+//   };
+    
+//     // _MyFormState form = _MyFormState(); // Remove this if you are not using it elsewhere
+//     return Scaffold(
+//       appBar: AppBar(title: Text('Add Character')),
+//       body: Padding(
+//         padding: const EdgeInsets.all(16.0),
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           crossAxisAlignment: CrossAxisAlignment.start,
+//           children: [
+//             TextFormField(
+//               controller: nameController, // Attach the controller here
+//               decoration: const InputDecoration(
+//                 border: UnderlineInputBorder(),
+//                 labelText: "Character Name",
+//                 hintText: "Enter character's name",
+//               ),
+//             ),
+//             SizedBox(height: 50),
+//             // ListView.builder(
+//             //   shrinkWrap: true,
+//             //   itemCount: options.length,
+//             //   itemBuilder: (BuildContext context, int index) {
+//             //     String key = options.keys.elementAt(index);
+//             //     CheckboxListTile(
+//             //       title: Text(key),
+//             //       value: options[key]!,
+//             //       onChanged: (bool? value) {
+//             //         setState(() {
+//             //           options[key] = value!;
+//             //         });
+//             //       },
+//             //     );
+//             //   },
+//             // ),
+//             SizedBox(height: 50),
+//             Center(
+//               child: ElevatedButton(
+//                 style: StandardButtonTheme.primaryButtonStyle,
+//                 onPressed: () async {
+//                   // Here we get the values from the text fields
+//                   nameString = nameController.text;
+//                   List<String> selectedOptions = [];
+//                   options.forEach((key, value) {
+//                     if (value) {
+//                       selectedOptions.add(key);
+//                     }
+//                   });
+//                   print('Selected Options: $selectedOptions');
+//                   // var fido = Character(name: nameString);
+//                   // await insertChar(fido);
+//                   Navigator.pop(context);
+//                 },
+//                 child: Text('Save Character'),
+//               ),
+//             ),
+//             SizedBox(height: 50),
+//             Center(
+//               child: ElevatedButton(
+//                 style: StandardButtonTheme.primaryButtonStyle, 
+//                 onPressed: () async {
+//                   // Here we get the values from the text fields
+//                   Navigator.pop(context);
+//                 },
+//                 child: Text('Discard'),
+//             ),
+//             ),// ... (other buttons or widgets can go here)
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 
 class Character {
