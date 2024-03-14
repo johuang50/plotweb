@@ -4,10 +4,9 @@ import 'package:flutter/widgets.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter_graphview/flutter_graphview.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart';
-import 'package:flutter/material.dart';
+import 'package:graphview/GraphView.dart';
 
 //import 'pacakge:getwidget/getwidget.dart';
 late Future<Database> database;
@@ -110,13 +109,29 @@ class MyAppState extends ChangeNotifier {
 class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    //var appState = context.watch<MyAppState>();
+    Graph graph = Graph()..isTree = true;
 
+    // Add your nodes and edges here
+    Node node1 = Node(IdButtonWidget(id: "Sophie"));
+    Node node2 = Node(IdButtonWidget(id: "Fido"));
+    Node node3 = Node(IdButtonWidget(id: "Lucy"));
+    Node node4 = Node(IdButtonWidget(id: "Linus"));
+
+    graph.addEdge(node1, node2, paint: Paint()..color = Colors.grey);
+    graph.addEdge(node1, node3, paint: Paint()..color = Colors.grey);
+    graph.addEdge(node2, node3, paint: Paint()..color = Colors.grey);
+    graph.addEdge(node4, node3, paint: Paint()..color = Colors.grey);
+    graph.addEdge(node4, node1, paint: Paint()..color = Colors.grey);
+    // ... continue adding nodes and edges as needed
+
+    var frAlgo = FruchtermanReingoldAlgorithm();
+    
     return Scaffold(
       appBar: AppBar(title: Text('Home Page')),
       body: Stack(
         alignment: Alignment.center,
         children: [
+          // Positioned widget for the Sophie button
           Positioned(
             bottom: 600,
             child: ElevatedButton(
@@ -134,10 +149,12 @@ class MyHomePage extends StatelessWidget {
               },
               child: Text('Sophie'),
             ),
+            // ... Existing code for the Sophie button
           ),
+          // Positioned widget for the Add Character button
           Positioned(
-          bottom: 100,
-          child: ElevatedButton(
+            bottom: 100,
+            child: ElevatedButton(
             style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () async{
                 Navigator.push(
@@ -150,9 +167,43 @@ class MyHomePage extends StatelessWidget {
               },
               child: Text('Add Character'),
           ),
-        )
-        ]
+            // ... Existing code for the Add Character button
+          ),
+          // Add a container for the GraphView
+          Positioned(
+            bottom: 300, // Adjust the position as needed
+            child: Container(
+              width: 300, // Set the width and height as needed
+              height: 200,
+              child: InteractiveViewer(
+                constrained: false,
+                boundaryMargin: EdgeInsets.all(100),
+                minScale: 0.01,
+                maxScale: 5.0,
+                child: GraphView(
+                  graph: graph,
+                  algorithm: frAlgo,
+                  builder: (Node node) => node.data as Widget,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class IdButtonWidget extends StatelessWidget {
+  final String id;
+  
+  IdButtonWidget({required this.id});
+  
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () => print('Button $id pressed'),
+      child: Text(id),
     );
   }
 }
@@ -408,55 +459,19 @@ class StandardButtonTheme {
 
 /* Graph stuff :) */
 
-class Node {
-  final String label;
-  final List<Node> children;
+// class Node {
+//   final String label;
+//   final List<Node> children;
 
-  Node(this.label, [this.children = const []]);
-}
-
-Node rootNode = Node(
-  'Root',
-  [
-    Node('Node 1', [Node('Node 1.1'), Node('Node 1.2')]),
-    Node('Node 2', [Node('Node 2.1'), Node('Node 2.2')]),
-  ],
-);
-
-// class GraphPage extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Node Graph'),
-//       ),
-//       body: Center(
-//         child: GraphView(
-//           graph: graph(rootNode),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget graph(Node node) {
-//     return Graph(
-//       nodes: buildGraph(node),
-//     );
-//   }
-
-//   List<NodeWidget> buildGraph(Node node) {
-//     return [
-//       NodeWidget(
-//         label: node.label,
-//         child: Column(
-//           children: [
-//             for (var child in node.children) ...buildGraph(child),
-//           ],
-//         ),
-//       ),
-//     ];
-//   }
+//   Node(this.label, [this.children = const []]);
 // }
 
+// Node rootNode = Node(
+//   'Root',
+//   [
+//     Node('Node 1', [Node('Node 1.1'), Node('Node 1.2')]),
+//     Node('Node 2', [Node('Node 2.1'), Node('Node 2.2')]),
+//   ],
+// );
 
 // https://docs.flutter.dev/cookbook/persistence/sqlite
