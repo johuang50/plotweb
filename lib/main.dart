@@ -341,45 +341,118 @@ class CharacterPage extends StatelessWidget {
   }
 }
 
-Future<List<Map<String, dynamic>>> getRelatedCharacters(Database database, int currentCharacterId) async {
-  List<Map<String, dynamic>> results = await database.rawQuery('''
-    SELECT charid2 AS related_character_id FROM Rels WHERE charid1 = ?
-    UNION
-    SELECT charid1 AS related_character_id FROM Rels WHERE charid2 = ?
-  ''', [currentCharacterId, currentCharacterId]);
+// Future<List<int>> getRelatedCharacterIds(Database db, int charId) async {
+//   final List<Map<String, dynamic>> maps = await db.rawQuery('''
+//     SELECT 
+//       CASE 
+//         WHEN charid2 = ? THEN charid1 
+//         ELSE charid2 
+//       END as related_charid
+//     FROM rels
+//     WHERE charid1 = ? OR charid2 = ?
+//   ''', [charId, charId, charId]);
+  
+//   // Extract the list of related character IDs.
+//   List<int> relatedCharIds = maps.map((map) => map['related_charid'] as int).toList();
+//   return relatedCharIds;
+// }
 
-  return results;
+Future<List<Map<String, dynamic>>> getRelatedCharacters(Database db, int charId) async {
+  final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT 
+      CASE 
+        WHEN charid2 = ? THEN charid1 
+        ELSE charid2 
+      END as related_charid
+    FROM rels
+    WHERE charid1 = ? OR charid2 = ?
+  ''', [charId, charId, charId]);
+  
+  // Extract the list of related character IDs.
+  List<int> relatedCharIds = maps.map((map) => map['related_charid'] as int).toList();
+  if (relatedCharIds.isEmpty) {
+    // Return an empty list if no related character IDs are found.
+    return [];
+  }
+  String placeholders = List.filled(relatedCharIds.length, '?').join(', ');
+  List<Object> whereArgs = relatedCharIds.map((id) => id as Object).toList();
+  final List<Map<String, dynamic>> result = await db.rawQuery(
+    'SELECT name FROM characters WHERE charid IN ($placeholders)',
+    whereArgs,
+  );
+  return result;
 }
+//EXAMPLE USAGE: 
+//    List<Map<String, dynamic>> relatedCharacters = await getRelatedCharacters(database, charId);
+
 
 class UpdatePage extends StatelessWidget {
+  final List<String> listy = ["Jad", "Lucy", "Josh", "Mayah"];
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Update $selectedChar')),
-      body: Column (
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Align(
-            alignment: Alignment.center,
-            Container(
-              width: 300,
-              height: 500,
-              color: Color.fromARGB(255, 106, 14, 7),
-              child: Text('Update'),
+    String chars = listy.join('\n');
+    return FutureBuilder<List<String>>(
+      future: _listfuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          // While waiting for the graph to load, you can show a loading indicator
+          return CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          // If an error occurred while loading the graph, show an error message
+          return Text('Error loading graph: ${snapshot.error}');
+        } else {
+          // If the graph has loaded successfully, display the UI
+          var graph = snapshot.data!; // Unwrap the graph from the snapshot
+          var frAlgo = FruchtermanReingoldAlgorithm();
+        return Scaffold(
+          appBar: AppBar(title: Text('Update $selectedChar')),
+          body: Center (
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  width: 300,
+                  height: 500,
+                  color: Color.fromARGB(255, 106, 14, 7),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center, // Centers the text widgets vertically
+                    crossAxisAlignment: CrossAxisAlignment.center, // Centers the text widgets horizontally
+                    children: <Widget>[
+                      Text(
+                        'How does this affect:',
+                        textAlign: TextAlign.center, // Centers the text within the Text widget (useful if text wraps)
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                        ),
+                      ),
+                      Text(
+                        chars,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: StandardButtonTheme.primaryButtonStyle,
+                  onPressed: () {
+                    print('update');
+                    Navigator.pop(context);
+                  },
+                  child: Text('Close'),
+                ),
+              ]
             ),
           ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            style: StandardButtonTheme.primaryButtonStyle,
-              onPressed: () {
-                print('update');
-                Navigator.pop(context);
-              },
-              child: Text('Done'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
