@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
-import 'package:multiselect/multiselect.dart';
+import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:english_words/english_words.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart';
 import 'dart:math';
 import 'package:graphview/GraphView.dart';
+import 'package:multi_select_flutter/multi_select_flutter.dart';
+
+
 
 //import 'pacakge:getwidget/getwidget.dart';
 late Future<Database> database;
@@ -28,16 +31,15 @@ Future<void> insertChar(Character character) async {
   );
 }
 
-Future<void> insertRel(Character character1, Character character2) async {
+Future<void> insertRel(int? character1, int? character2) async {
   // Get a reference to the database.
   final db = await database;
 
   // Determine the IDs to insert, ensuring id1 is always less than id2
-  int id1 = min(character1.charid!, character2.charid!);
-  int id2 = max(character1.charid!, character2.charid!);
-
+  int charid1 = min(character1!, character2!);
+  int charid2 = max(character1, character2);
   // Create a Relationships object with the determined IDs
-  Relationship relationship = Relationship(id1: id1, id2: id2);
+  Relationship relationship = Relationship(charid1: charid1, charid2: charid2);
 
   // Insert the relationship into the database
   await db.insert(
@@ -65,10 +67,10 @@ Future<List<Relationship>> relationships() async {
 
   return [
     for (final {
-          'id1': id1 as int,
-          'id2': id2 as int,
+          'charid1': charid1 as int,
+          'charid2': charid2 as int,
         } in charMaps)
-      Relationship(id1: id1, id2: id2 ),
+      Relationship(charid1: charid1, charid2: charid2 ),
   ];
 }
 
@@ -159,23 +161,14 @@ Future<Graph> loadGraph() async {
   }
 
   // Create example nodes
-  Node node1 = Node(IdButtonWidget(name: "Sophie", id: 1));
-  Node node2 = Node(IdButtonWidget(name: "Fido", id: 2));
-  Node node3 = Node(IdButtonWidget(name: "Lucy", id: 3));
-  graph.addNode(node1);
-  graph.addNode(node2);
-  graph.addNode(node3);
+
 
 
   
   for(Relationship rel in prevRels){
-    graph.addEdge(nodes[rel.id1], nodes[rel.id2], paint: Paint()..color = Colors.grey);
+    graph.addEdge(nodes[rel.charid1], nodes[rel.charid2], paint: Paint()..color = Colors.grey);
+    print("${rel.charid1} is charid1, ${rel.charid2} is charId2." );
   }
-
-  // Add edges 
-  graph.addEdge(node1, node2, paint: Paint()..color = Colors.grey);
-  graph.addEdge(node1, node3, paint: Paint()..color = Colors.grey);
-  graph.addEdge(node2, node3, paint: Paint()..color = Colors.grey);
 
 
   return graph;
@@ -325,6 +318,8 @@ class CharacterPage extends StatelessWidget {
               onPressed: () {
                 print('deleted' + " " +selectedID.toString());
                 deleteChar(selectedID);
+                myHomePageKey.currentState?.reloadData();
+                Navigator.pop(context);
               },
               child: Text('Delete'),
             ),
@@ -346,18 +341,36 @@ class CharacterPage extends StatelessWidget {
   }
 }
 
+Future<List<Map<String, dynamic>>> getRelatedCharacters(Database database, int currentCharacterId) async {
+  List<Map<String, dynamic>> results = await database.rawQuery('''
+    SELECT charid2 AS related_character_id FROM Rels WHERE charid1 = ?
+    UNION
+    SELECT charid1 AS related_character_id FROM Rels WHERE charid2 = ?
+  ''', [currentCharacterId, currentCharacterId]);
+
+  return results;
+}
+
 class UpdatePage extends StatelessWidget {
+  @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
     return Scaffold(
       appBar: AppBar(title: Text('Update $selectedChar')),
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-          bottom: 100,
-          child: ElevatedButton(
+      body: Column (
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Align(
+            alignment: Alignment.center,
+            Container(
+              width: 300,
+              height: 500,
+              color: Color.fromARGB(255, 106, 14, 7),
+              child: Text('Update'),
+            ),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
             style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () {
                 print('update');
@@ -365,24 +378,10 @@ class UpdatePage extends StatelessWidget {
               },
               child: Text('Done'),
           ),
-        )
-        ]
+        ],
       ),
     );
   }
-}
-
-
-
-Map<String, int?> char_to_id = {}; 
-
-void fetchData() async {
-  char_to_id = {};
-  Future<List<Character>> charList = characters();
-  List<Character> chars = await charList;
-  chars.forEach((character) {
-    char_to_id[character.name] = character.charid;
-  });
 }
 
 class AddCharacter extends StatefulWidget {
@@ -390,21 +389,33 @@ class AddCharacter extends StatefulWidget {
   _AddCharacterState createState() => _AddCharacterState();
 }
 
+Map<String, int?> char_to_id = {}; 
+List<String> options = char_to_id.keys.toList();
+
+void fetchData() async {
+  char_to_id = {};
+  options = [];
+  Future<List<Character>> charList = characters();
+  List<Character> chars = await charList;
+  chars.forEach((character) {
+    print("Fetched:");
+    char_to_id[character.name] = character.charid;
+  });
+}
 
 class _AddCharacterState extends State<AddCharacter> {
   TextEditingController nameController = TextEditingController();
-  TextEditingController relationshipsController = TextEditingController();
   List<String> _selectedOptions = [];
-  List<String> options = char_to_id.keys.toList();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final GlobalKey<_MyHomePageState> myHomePageKey = GlobalKey<_MyHomePageState>();
-  
+
   @override
   void dispose() {
     nameController.dispose();
-    relationshipsController.dispose();
     super.dispose();
   }
+
+   List<MultiSelectItem<String>> get _items => char_to_id.keys
+      .map((animal) => MultiSelectItem<String>(animal, animal))
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -412,93 +423,91 @@ class _AddCharacterState extends State<AddCharacter> {
       appBar: AppBar(title: Text('Add Character')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  border: UnderlineInputBorder(),
-                  labelText: "Character Name",
-                  hintText: "Enter character's name",
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: nameController, // Attach the controller here
+              decoration: const InputDecoration(
+                border: UnderlineInputBorder(),
+                labelText: "Character Name",
+                hintText: "Enter character's name",
+              ),
+            ),
+            SizedBox(height: 20),
+             MultiSelectDialogField(
+              items: _items,
+              title: Text("Relationships"),
+              selectedColor: Theme.of(context).primaryColor,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.all(Radius.circular(40)),
+                border: Border.all(
+                  color: Theme.of(context).primaryColor,
+                  width: 2,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a character name';
+              ),
+              buttonText: Text(
+                "Select Relationships",
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontSize: 16,
+                ),
+              ),
+              onConfirm: (values) {
+                setState(() {
+                  _selectedOptions = values;
+                });
+              },
+              initialValue: _selectedOptions,
+            ),
+            SizedBox(height: 20),
+            SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                
+                onPressed: () async {
+                  String nameString = nameController.text;
+                  if(nameString == ""){
+                    print("Yah messed up");
                   }
-                  return null;
+                  else{
+                  print('Name: $nameString');
+                  print('Selected Options: $_selectedOptions');
+                  Character character = Character(name: nameString);
+                  insertChar(character);
+                  for(String charName in _selectedOptions){
+                    int? char_id = char_to_id[charName];
+                    final String dbPath = join(await getDatabasesPath(), 'character.db');
+                    final Database database = await openDatabase(dbPath);
+
+                    final List<Map> result = await database.rawQuery('SELECT * FROM characters ORDER BY charid DESC LIMIT 1');
+                      int curr_id = result.first['charid'] as int;
+                      insertRel(curr_id, char_id);
+                  }
+                  myHomePageKey.currentState?.reloadData();
+                  Navigator.pop(context);
+                  }
                 },
+                child: Text('Save Character'),
               ),
-              SizedBox(height: 20),
-              DropdownButtonFormField(
-                isExpanded: true,
-                decoration: InputDecoration(
-                  labelText: 'Select Relationships',
-                  border: OutlineInputBorder(),
-                ),
-                value: _selectedOptions.isNotEmpty ? _selectedOptions : null,
-                items: options.map((String option) {
-                  return DropdownMenuItem(
-                    value: option,
-                    child: Text(option),
-                  );
-                }).toList(),
-                onChanged: (selectedOptions) {
-                  setState(() {
-                    print("changed");
-                    print("selectedOptions: $selectedOptions");
-                    if (selectedOptions is String) {
-                      _selectedOptions.add(selectedOptions);
-                    }
-                    print("list: $_selectedOptions");
-                  });
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
                 },
-                onSaved: (selectedOptions) {
-                  setState(() {
-                    if (_selectedOptions.isNotEmpty) {
-                      _selectedOptions = selectedOptions as List<String>;
-                    }
-                  });
-                },
+                child: Text('Discard'),
               ),
-              SizedBox(height: 20),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      _formKey.currentState!.save();
-                      String nameString = nameController.text;
-                      print('Name: $nameString');
-                      Character character = Character(name: nameString);
-                      await insertChar(character);
-                     myHomePageKey.currentState?.reloadData();
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: Text('Save Character'),
-                ),
-              ),
-              SizedBox(height: 20),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    _selectedOptions.clear();
-                    Navigator.pop(context);
-                  },
-                  child: Text('Discard'),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
 
 class Character {
   final int? charid;
@@ -524,23 +533,23 @@ class Character {
 }
 
 class Relationship {
-  final int id1;
-  final int id2;
+  final int charid1;
+  final int charid2;
 
   const Relationship({
-    required this.id1,
-    required this.id2
+    required this.charid1,
+    required this.charid2
   });
     Map<String, Object?> toMap() {
     return {
-      'id1': id1,
-      'id2': id2,
+      'charid1': charid1,
+      'charid2': charid2,
     };
   }
 
    @override
    String toString() {
-    return 'Relationship{id1: $int?, id2: $int?}';
+    return 'Relationship{charid1: $int?, charid2: $int?}';
   }
 }
 
@@ -593,21 +602,6 @@ class StandardButtonTheme {
   );
 }
 
-/* Graph stuff :) */
 
-// class Node {
-//   final String label;
-//   final List<Node> children;
-
-//   Node(this.label, [this.children = const []]);
-// }
-
-// Node rootNode = Node(
-//   'Root',
-//   [
-//     Node('Node 1', [Node('Node 1.1'), Node('Node 1.2')]),
-//     Node('Node 2', [Node('Node 2.1'), Node('Node 2.2')]),
-//   ],
-// );
 
 // https://docs.flutter.dev/cookbook/persistence/sqlite
