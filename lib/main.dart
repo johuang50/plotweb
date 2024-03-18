@@ -217,6 +217,9 @@ class _MyHomePageState extends State<MyHomePage> {
         } else {
           // If the graph has loaded successfully, display the UI
           var graph = snapshot.data!; // Unwrap the graph from the snapshot
+          for(Node node in graph.nodes){
+            node.position = Offset(120,280);
+          }
           var frAlgo = FruchtermanReingoldAlgorithm();
 
           return Scaffold(
@@ -503,22 +506,28 @@ class UpdatePage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center, // Centers the text widgets vertically
                     crossAxisAlignment: CrossAxisAlignment.center, // Centers the text widgets horizontally
                     children: <Widget>[
-                      Text(
-                        'How does this affect:',
-                        textAlign: TextAlign.center, // Centers the text within the Text widget (useful if text wraps)
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
+                      Positioned(
+                        top: 50,
+                        child: Text(
+                          'How does this affect:',
+                          textAlign: TextAlign.center, // Centers the text within the Text widget (useful if text wraps)
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                          ),
                         ),
                       ),
-                      Text(
-                        chars,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
+                      Positioned(
+                        top: 300,
+                        child: Text(
+                          chars,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 30,
+                          ),
                         ),
-                      ),
+                      )
                     ],
                   ),
                 ),
