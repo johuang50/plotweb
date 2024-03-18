@@ -130,12 +130,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => MyAppState(),
-      child: MaterialApp(
+      child: CupertinoApp(
         title: 'PlotWeb',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
-        ),
+        // theme: ThemeData(
+        //   useMaterial3: true,
+        //   colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+        // ),
             home: MyHomePage(key: myHomePageKey),
       ),
     );
@@ -162,7 +162,9 @@ Future<Graph> loadGraph() async {
   List<Relationship> prevRels = await prevRelsFuture;
   
   // Populate nodes list with previous characters
+  bool checker = false;
   for (Character character in prevChars) {
+    if(!checker){}
     nodes[character.charid ?? 0] = Node(IdButtonWidget(name: character.name, id: character.charid));
     graph.addNode(nodes[character.charid ?? 0]);
   }
@@ -210,26 +212,31 @@ class _MyHomePageState extends State<MyHomePage> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           // While waiting for the graph to load, you can show a loading indicator
-          return CircularProgressIndicator();
+          return CupertinoActivityIndicator();
         } else if (snapshot.hasError) {
           // If an error occurred while loading the graph, show an error message
           return Text('Error loading graph: ${snapshot.error}');
         } else {
           // If the graph has loaded successfully, display the UI
           var graph = snapshot.data!; // Unwrap the graph from the snapshot
+          for (Node node in graph.nodes) {
+              node.position = Offset(150, 275);
+            }
           var frAlgo = FruchtermanReingoldAlgorithm();
 
-          return Scaffold(
-            appBar: AppBar(title: Text('Home Page')),
-            body: Stack(
+          return CupertinoPageScaffold(
+            navigationBar: CupertinoNavigationBar(
+              middle: Text('Home Page')
+            ),
+            child: Stack(
               alignment: Alignment.center,
               children: [
                   // Positioned widget for the Sophie button
           // Positioned widget for the Add Character button
           Positioned(
             bottom: 100,
-            child: ElevatedButton(
-            style: StandardButtonTheme.primaryButtonStyle,
+            child: StandardButtonTheme.createPrimaryButton(
+            // style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () async{
                 fetchData();
                 Navigator.push(
@@ -238,7 +245,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
   
               },
-              child: Text('Add Character'),
+              label: 'Add Character',
           ),
             // ... Existing code for the Add Character button
           ),
@@ -279,7 +286,7 @@ class IdButtonWidget extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
+    return StandardButtonTheme.createPrimaryButton(
       onPressed: () async{
         selectedID = this.id;
         selectedChar = this.name;
@@ -290,7 +297,7 @@ class IdButtonWidget extends StatelessWidget {
           ),
         );
       },
-      child: Text(name),
+      label: name,
     );
   }
 }
@@ -299,15 +306,18 @@ class CharacterPage extends StatelessWidget {
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
     var pair = appState.current;
-    return Scaffold(
-      appBar: AppBar(title: Text('$selectedChar')),
-      body: Stack(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('$selectedChar')
+      ),
+      // appBar: AppBar(title: Text('$selectedChar')),
+      child: Stack(
         alignment: Alignment.center,
         children: [
           Positioned(
           bottom: 600,
-          child: ElevatedButton(
-            style: StandardButtonTheme.primaryButtonStyle,
+          child: StandardButtonTheme.createPrimaryButton(
+            // style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () {
                  Future<List<String>> relatedCharacters = getRelatedCharacterNames();
                 Navigator.push(
@@ -315,29 +325,29 @@ class CharacterPage extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => UpdatePage(relatedCharactersFuture: relatedCharacters)),
                 );
               },
-              child: Text('Update'),
+              label: 'Update',
             ),
           ),
           Positioned(
           bottom: 400,
-          child: ElevatedButton(
-            style: StandardButtonTheme.primaryButtonStyle,
+          child: StandardButtonTheme.createPrimaryButton(
+            // style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () {
                 deleteChar(selectedID);
                 myHomePageKey.currentState?.reloadData();
                 Navigator.pop(context);
               },
-              child: Text('Delete'),
+              label: 'Delete',
             ),
           ),
           Positioned(
             bottom: 200,
-            child: ElevatedButton(
-              style: StandardButtonTheme.primaryButtonStyle,
+            child: StandardButtonTheme.createPrimaryButton(
+              // style: StandardButtonTheme.primaryButtonStyle,
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                child: Text('Close'),
+                label: 'Close',
             ),
           ),
         ],
@@ -414,7 +424,7 @@ Future<List<String>> getRelatedCharacterNames() async {
 //     String chars = listy.join('\n');
 // // body: FutureBuilder<List<String>>(
 // //future: getRelatedCharacterNames(),
-//     return Scaffold(
+//     return CupertinoPageScaffold(
 //       appBar: AppBar(title: Text('Update $selectedChar')),
       
 //       body: Center (
@@ -450,7 +460,7 @@ Future<List<String>> getRelatedCharacterNames() async {
 //               ),
 //             ),
 //             SizedBox(height: 20),
-//             ElevatedButton(
+//             CupertinoButton(
 //               style: StandardButtonTheme.primaryButtonStyle,
 //               onPressed: () {
 //                 print('update');
@@ -472,9 +482,12 @@ class UpdatePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Update Character')),
-      body: FutureBuilder<List<String>>(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('Update Character')
+      ),
+      // appBar: AppBar(title: Text('Update Character')),
+      child: FutureBuilder<List<String>>(
         future: relatedCharactersFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -503,33 +516,39 @@ class UpdatePage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center, // Centers the text widgets vertically
                     crossAxisAlignment: CrossAxisAlignment.center, // Centers the text widgets horizontally
                     children: <Widget>[
-                      Text(
-                        'How does this affect:',
-                        textAlign: TextAlign.center, // Centers the text within the Text widget (useful if text wraps)
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
+                      Positioned(
+                        top: 100,
+                        child: Text(
+                          'How does this affect:',
+                          textAlign: TextAlign.center, // Centers the text within the Text widget (useful if text wraps)
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                          ),
                         ),
                       ),
-                      Text(
-                        chars,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
+                      Positioned(
+                        top: 300,
+                        child: Text(
+                          chars,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 30,
+                          ),
                         ),
-                      ),
+                      )
                     ],
                   ),
                 ),
                 SizedBox(height: 20),
-                ElevatedButton(
-                  style: StandardButtonTheme.primaryButtonStyle,
+                StandardButtonTheme.createPrimaryButton(
+                  // style: StandardButtonTheme.primaryButtonStyle,
                   onPressed: () {
                     print('update');
                     Navigator.pop(context);
                   },
-                  child: Text('Close'),
+                  label: 'Close',
                 ),
               ],
             ),
@@ -575,9 +594,11 @@ class _AddCharacterState extends State<AddCharacter> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Add Character')),
-      body: Padding(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('Add Character')
+      ),
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -621,7 +642,7 @@ class _AddCharacterState extends State<AddCharacter> {
             SizedBox(height: 20),
             SizedBox(height: 20),
             Center(
-              child: ElevatedButton(
+              child: StandardButtonTheme.createPrimaryButton(
                 
                 onPressed: () async {
                   String nameString = nameController.text;
@@ -650,16 +671,16 @@ class _AddCharacterState extends State<AddCharacter> {
                   Navigator.pop(context);
                   }
                 },
-                child: Text('Save Character'),
+                label: 'Save Character',
               ),
             ),
             SizedBox(height: 20),
             Center(
-              child: ElevatedButton(
+              child: StandardButtonTheme.createPrimaryButton(
                 onPressed: () async {
                   Navigator.pop(context);
                 },
-                child: Text('Discard'),
+                label: 'Discard',
               ),
             ),
           ],
@@ -717,11 +738,11 @@ class Relationship {
 class CharacterListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Characters List'),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text('Characters List')
       ),
-      body: FutureBuilder<List<Character>>(
+      child: FutureBuilder<List<Character>>(
         future: characters(), // your characters() future from your code
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
@@ -753,13 +774,25 @@ class CharacterListPage extends StatelessWidget {
 
 
 class StandardButtonTheme {
-  static final ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
-    backgroundColor: Color.fromARGB(255, 106, 14, 7),
-    textStyle: TextStyle(fontSize: 30),
-    foregroundColor: Colors.white,
-    minimumSize: Size(200, 50),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.horizontal())
-  );
+  static CupertinoButton createPrimaryButton({
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return CupertinoButton(
+      color: Color.fromARGB(255, 106, 14, 7), // Background color
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Your desired padding
+      onPressed: onPressed,
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 30, color: CupertinoColors.white), // Foreground text color
+      ),
+      minSize: 50, // minHeight
+      borderRadius: BorderRadius.horizontal(
+        left: Radius.circular(15),
+        right: Radius.circular(15),
+      ),
+    );
+  }
 }
 
 
