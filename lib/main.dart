@@ -175,7 +175,7 @@ Future<Graph> loadGraph() async {
 
   
   for(Relationship rel in prevRels){
-    graph.addEdge(nodes[rel.charid1], nodes[rel.charid2], paint: Paint()..color = Colors.grey);
+    graph.addEdge(nodes[rel.charid1], nodes[rel.charid2], paint: Paint()..color = Colors.black);
   }
 
 
