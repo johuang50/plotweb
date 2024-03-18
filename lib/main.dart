@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/rendering.dart';
+// import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:english_words/english_words.dart';
@@ -51,11 +51,19 @@ Future<void> insertRel(int? character1, int? character2) async {
 
 Future<void> deleteChar(int? killed) async{
     final db = await database;
-    await db.delete(
-    'Characters',
-    where: 'charid = ?',
-    whereArgs: [killed],
-  );
+
+  await db.transaction((txn) async {
+    await txn.delete(
+      'rels',
+      where: 'charid1 = ? OR charid2 = ?',
+      whereArgs: [killed, killed],
+    );
+    await txn.delete(
+      'Characters',
+      where: 'charid = ?',
+      whereArgs: [killed],
+    );
+  });
 }
 
 Future<List<Relationship>> relationships() async {
@@ -155,7 +163,6 @@ Future<Graph> loadGraph() async {
   
   // Populate nodes list with previous characters
   for (Character character in prevChars) {
-    print(character.charid);
     nodes[character.charid ?? 0] = Node(IdButtonWidget(name: character.name, id: character.charid));
     graph.addNode(nodes[character.charid ?? 0]);
   }
@@ -164,10 +171,11 @@ Future<Graph> loadGraph() async {
 
 
 
+  // Check if the table is not empty
+
   
   for(Relationship rel in prevRels){
     graph.addEdge(nodes[rel.charid1], nodes[rel.charid2], paint: Paint()..color = Colors.grey);
-    print("${rel.charid1} is charid1, ${rel.charid2} is charId2." );
   }
 
 
@@ -224,7 +232,6 @@ class _MyHomePageState extends State<MyHomePage> {
             style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () async{
                 fetchData();
-                print("fetching");
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => AddCharacter()),
@@ -274,7 +281,6 @@ class IdButtonWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () async{
-        print('Button $name pressed');
         selectedID = this.id;
         selectedChar = this.name;
         Navigator.push(
@@ -303,9 +309,10 @@ class CharacterPage extends StatelessWidget {
           child: ElevatedButton(
             style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () {
+                 Future<List<String>> relatedCharacters = getRelatedCharacterNames();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => UpdatePage()),
+                  MaterialPageRoute(builder: (context) => UpdatePage(relatedCharactersFuture: relatedCharacters)),
                 );
               },
               child: Text('Update'),
@@ -316,7 +323,6 @@ class CharacterPage extends StatelessWidget {
           child: ElevatedButton(
             style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () {
-                print('deleted' + " " +selectedID.toString());
                 deleteChar(selectedID);
                 myHomePageKey.currentState?.reloadData();
                 Navigator.pop(context);
@@ -329,7 +335,6 @@ class CharacterPage extends StatelessWidget {
             child: ElevatedButton(
               style: StandardButtonTheme.primaryButtonStyle,
                 onPressed: () {
-                  print('Close');
                   Navigator.pop(context);
                 },
                 child: Text('Close'),
@@ -357,7 +362,10 @@ class CharacterPage extends StatelessWidget {
 //   return relatedCharIds;
 // }
 
-Future<List<Map<String, dynamic>>> getRelatedCharacters(Database db, int charId) async {
+Future<List<String>> getRelatedCharacterNames() async {
+  // Fetch related character IDs.
+   final db = await database;
+
   final List<Map<String, dynamic>> maps = await db.rawQuery('''
     SELECT 
       CASE 
@@ -366,48 +374,123 @@ Future<List<Map<String, dynamic>>> getRelatedCharacters(Database db, int charId)
       END as related_charid
     FROM rels
     WHERE charid1 = ? OR charid2 = ?
-  ''', [charId, charId, charId]);
+  ''', [selectedID, selectedID, selectedID]);
   
   // Extract the list of related character IDs.
   List<int> relatedCharIds = maps.map((map) => map['related_charid'] as int).toList();
+
+  // Check if the list is empty to prevent an invalid SQL query.
   if (relatedCharIds.isEmpty) {
     // Return an empty list if no related character IDs are found.
     return [];
   }
+
+  // Create the placeholders.
   String placeholders = List.filled(relatedCharIds.length, '?').join(', ');
+  // Prepare the arguments.
   List<Object> whereArgs = relatedCharIds.map((id) => id as Object).toList();
-  final List<Map<String, dynamic>> result = await db.rawQuery(
+
+  // Fetch the character names using the related character IDs.
+  final List<Map<String, dynamic>> namesResult = await db.rawQuery(
     'SELECT name FROM characters WHERE charid IN ($placeholders)',
     whereArgs,
   );
-  return result;
+
+  // Map the result to a list of names.
+  List<String> names = namesResult.map((row) => row['name'] as String).toList();
+
+  return names;
 }
 //EXAMPLE USAGE: 
 //    List<Map<String, dynamic>> relatedCharacters = await getRelatedCharacters(database, charId);
 
 
+
+// class UpdatePage extends StatelessWidget {
+//   final List<String> listy = ["Jad", "Lucy", "Josh", "Mayah"];
+  
+//   @override
+//   Widget build(BuildContext context) {
+//     String chars = listy.join('\n');
+// // body: FutureBuilder<List<String>>(
+// //future: getRelatedCharacterNames(),
+//     return Scaffold(
+//       appBar: AppBar(title: Text('Update $selectedChar')),
+      
+//       body: Center (
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           mainAxisSize: MainAxisSize.min,
+//           children: <Widget>[
+//             Container(
+//               width: 300,
+//               height: 500,
+//               color: Color.fromARGB(255, 106, 14, 7),
+//               child: Column(
+//                 mainAxisAlignment: MainAxisAlignment.center, // Centers the text widgets vertically
+//                 crossAxisAlignment: CrossAxisAlignment.center, // Centers the text widgets horizontally
+//                 children: <Widget>[
+//                   Text(
+//                     'How does this affect:',
+//                     textAlign: TextAlign.center, // Centers the text within the Text widget (useful if text wraps)
+//                     style: TextStyle(
+//                       color: Colors.white,
+//                       fontSize: 32,
+//                     ),
+//                   ),
+//                   Text(
+//                     chars,
+//                     textAlign: TextAlign.center,
+//                     style: TextStyle(
+//                       color: Colors.white,
+//                       fontSize: 30,
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ),
+//             SizedBox(height: 20),
+//             ElevatedButton(
+//               style: StandardButtonTheme.primaryButtonStyle,
+//               onPressed: () {
+//                 print('update');
+//                 Navigator.pop(context);
+//               },
+//               child: Text('Close'),
+//             ),
+//           ]
+//         ),
+//       ),
+//     );
+//   }
+// }
+
 class UpdatePage extends StatelessWidget {
-  final List<String> listy = ["Jad", "Lucy", "Josh", "Mayah"];
+  final Future<List<String>> relatedCharactersFuture;
+
+  UpdatePage({Key? key, required this.relatedCharactersFuture}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    String chars = listy.join('\n');
-    return FutureBuilder<List<String>>(
-      future: _listfuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          // While waiting for the graph to load, you can show a loading indicator
-          return CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          // If an error occurred while loading the graph, show an error message
-          return Text('Error loading graph: ${snapshot.error}');
-        } else {
-          // If the graph has loaded successfully, display the UI
-          var graph = snapshot.data!; // Unwrap the graph from the snapshot
-          var frAlgo = FruchtermanReingoldAlgorithm();
-        return Scaffold(
-          appBar: AppBar(title: Text('Update $selectedChar')),
-          body: Center (
+    return Scaffold(
+      appBar: AppBar(title: Text('Update Character')),
+      body: FutureBuilder<List<String>>(
+        future: relatedCharactersFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // While waiting for the future to resolve, show a loading indicator
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            // If an error occurred, show an error message
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData) {
+            // If the Future completes with no data, show a message
+            return Center(child: Text('No related characters found.'));
+          }
+
+          // Data is fetched successfully, display the names
+          String chars = snapshot.data!.join('\n');
+          return Center (
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
@@ -448,14 +531,15 @@ class UpdatePage extends StatelessWidget {
                   },
                   child: Text('Close'),
                 ),
-              ]
+              ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
+
 
 class AddCharacter extends StatefulWidget {
   @override
@@ -471,7 +555,6 @@ void fetchData() async {
   Future<List<Character>> charList = characters();
   List<Character> chars = await charList;
   chars.forEach((character) {
-    print("Fetched:");
     char_to_id[character.name] = character.charid;
   });
 }
@@ -543,11 +626,15 @@ class _AddCharacterState extends State<AddCharacter> {
                 onPressed: () async {
                   String nameString = nameController.text;
                   if(nameString == ""){
-                    print("Yah messed up");
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false, // Dialog is not dismissed when user taps outside of it
+                      builder: (BuildContext context) => AlertDialog(
+                        content: Text("Characters must have a name"),
+                      ),
+                    );
                   }
                   else{
-                  print('Name: $nameString');
-                  print('Selected Options: $_selectedOptions');
                   Character character = Character(name: nameString);
                   insertChar(character);
                   for(String charName in _selectedOptions){
