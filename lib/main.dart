@@ -132,11 +132,12 @@ class MyApp extends StatelessWidget {
       create: (context) => MyAppState(),
       child: CupertinoApp(
         title: 'PlotWeb',
+        theme: CupertinoThemeData(primaryColor: Colors.white),
         // theme: ThemeData(
         //   useMaterial3: true,
         //   colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         // ),
-            home: MyHomePage(key: myHomePageKey),
+        home: MyHomePage(key: myHomePageKey),
       ),
     );
   }
@@ -492,7 +493,7 @@ class UpdatePage extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             // While waiting for the future to resolve, show a loading indicator
-            return Center(child: CircularProgressIndicator());
+            return Center(child: CupertinoActivityIndicator());
           } else if (snapshot.hasError) {
             // If an error occurred, show an error message
             return Center(child: Text('Error: ${snapshot.error}'));
@@ -604,40 +605,59 @@ class _AddCharacterState extends State<AddCharacter> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextFormField(
-              controller: nameController, // Attach the controller here
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                labelText: "Character Name",
-                hintText: "Enter character's name",
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Character Name",
+                  style: TextStyle(
+                    color: CupertinoColors.label, // Use a color appropriate for your design
+                  ),
+                ),
+                SizedBox(height: 6), // Space between label and text field
+                CupertinoTextField(
+                  controller: nameController,
+                  placeholder: "Enter character's name",
+                  clearButtonMode: OverlayVisibilityMode.editing,
+                  decoration: BoxDecoration(
+                    border: Border(bottom: BorderSide(
+                      width: 1.0, // Thickness of bottom border
+                      color: CupertinoColors.inactiveGray,
+                    )),
+                  ),
+                  padding: EdgeInsets.all(12),
+                ),
+              ],
             ),
             SizedBox(height: 20),
-             MultiSelectDialogField(
-              items: _items,
-              title: Text("Relationships"),
-              selectedColor: Theme.of(context).primaryColor,
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.all(Radius.circular(40)),
-                border: Border.all(
-                  color: Theme.of(context).primaryColor,
-                  width: 2,
+            Material(
+              color: Colors.transparent,
+              child: MultiSelectDialogField(
+                items: _items,
+                title: Text("Relationships"),
+                selectedColor: Theme.of(context).primaryColor,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.all(Radius.circular(40)),
+                  border: Border.all(
+                    color: Theme.of(context).primaryColor,
+                    width: 2,
+                  ),
                 ),
-              ),
-              buttonText: Text(
-                "Select Relationships",
-                style: TextStyle(
-                  color: Theme.of(context).primaryColor,
-                  fontSize: 16,
+                buttonText: Text(
+                  "Select Relationships",
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-              onConfirm: (values) {
-                setState(() {
-                  _selectedOptions = values;
-                });
-              },
-              initialValue: _selectedOptions,
+                onConfirm: (values) {
+                  setState(() {
+                    _selectedOptions = values;
+                  });
+                },
+                initialValue: _selectedOptions,
+              )
             ),
             SizedBox(height: 20),
             SizedBox(height: 20),
@@ -647,10 +667,10 @@ class _AddCharacterState extends State<AddCharacter> {
                 onPressed: () async {
                   String nameString = nameController.text;
                   if(nameString == ""){
-                    showDialog(
+                    showCupertinoDialog(
                       context: context,
                       barrierDismissible: false, // Dialog is not dismissed when user taps outside of it
-                      builder: (BuildContext context) => AlertDialog(
+                      builder: (BuildContext context) => CupertinoAlertDialog(
                         content: Text("Characters must have a name"),
                       ),
                     );
@@ -764,7 +784,7 @@ class CharacterListPage extends StatelessWidget {
             );
           } else {
             // While fetching, show a loading spinner.
-            return Center(child: CircularProgressIndicator());
+            return Center(child: CupertinoActivityIndicator());
           }
         },
       ),
