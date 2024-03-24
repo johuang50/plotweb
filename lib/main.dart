@@ -170,7 +170,7 @@ Future<Graph> loadGraph() async {
   // Check if the table is not empty
 
   for (Relationship rel in prevRels) {
-    graph.addEdge(nodes[rel.charid1], nodes[rel.charid2], 
+    graph.addEdge(nodes[rel.charid1], nodes[rel.charid2],
         paint: Paint()..color = Colors.black..strokeWidth = 3);
   }
 
