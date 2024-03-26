@@ -10,11 +10,8 @@ import 'dart:math';
 import 'package:graphview/GraphView.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 
-
-
 //import 'pacakge:getwidget/getwidget.dart';
 late Future<Database> database;
-
 
 Future<void> insertChar(Character character) async {
   // Get a reference to the database.
@@ -49,8 +46,8 @@ Future<void> insertRel(int? character1, int? character2) async {
   );
 }
 
-Future<void> deleteChar(int? killed) async{
-    final db = await database;
+Future<void> deleteChar(int? killed) async {
+  final db = await database;
 
   await db.transaction((txn) async {
     await txn.delete(
@@ -78,7 +75,7 @@ Future<List<Relationship>> relationships() async {
           'charid1': charid1 as int,
           'charid2': charid2 as int,
         } in charMaps)
-      Relationship(charid1: charid1, charid2: charid2 ),
+      Relationship(charid1: charid1, charid2: charid2),
   ];
 }
 
@@ -98,27 +95,26 @@ Future<List<Character>> characters() async {
   ];
 }
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final String dbPath = join(await getDatabasesPath(), 'character.db');
-  await deleteDatabase(dbPath);     //THIS L
+  // await deleteDatabase(dbPath); //THIS L
   database = openDatabase(
-  join(await getDatabasesPath(), 'character.db'),
-   onCreate: (db, version) async {
-    // Run the CREATE TABLE statement on the database.
-    await db.execute(
-    'CREATE TABLE Characters(charid INTEGER PRIMARY KEY, name TEXT) ',
-   );
-     await db.execute(
-    'CREATE TABLE Rels(charid1 INTEGER, charid2 INTEGER, ' +
-    'PRIMARY KEY (charid1, charid2), FOREIGN KEY (charid1) references Characters(charid) ON DELETE CASCADE, FOREIGN KEY (charid2) references Characters(charid) ON DELETE CASCADE) ', 
-    );
-  },
-  // Set the version. This executes the onCreate function and provides a
-  // path to perform database upgrades and downgrades.
-  version: 1,
-);
-
+    join(await getDatabasesPath(), 'character.db'),
+    onCreate: (db, version) async {
+      // Run the CREATE TABLE statement on the database.
+      await db.execute(
+        'CREATE TABLE Characters(charid INTEGER PRIMARY KEY, name TEXT) ',
+      );
+      await db.execute(
+        'CREATE TABLE Rels(charid1 INTEGER, charid2 INTEGER, ' +
+            'PRIMARY KEY (charid1, charid2), FOREIGN KEY (charid1) references Characters(charid) ON DELETE CASCADE, FOREIGN KEY (charid2) references Characters(charid) ON DELETE CASCADE) ',
+      );
+    },
+    // Set the version. This executes the onCreate function and provides a
+    // path to perform database upgrades and downgrades.
+    version: 1,
+  );
 
   runApp(MyApp());
 }
@@ -136,7 +132,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         ),
-            home: MyHomePage(key: myHomePageKey),
+        home: MyHomePage(key: myHomePageKey),
       ),
     );
   }
@@ -153,57 +149,77 @@ Future<Graph> loadGraph() async {
   Future<List<Character>> prevCharsFuture = characters();
   Future<List<Relationship>> prevRelsFuture = relationships();
 
-  // When user finishes adding character, add nodes to the graph using vector of 
-  // nodes for relationships between characters 
-  List<Node> nodes = List<Node>.filled(441, Node(IdButtonWidget(name: "SOLOWAY", id: -12)));
-  
+  // When user finishes adding character, add nodes to the graph using vector of
+  // nodes for relationships between characters
+  List<Node> nodes =
+      List<Node>.filled(441, Node(IdButtonWidget(name: "SOLOWAY", id: -12)));
+
   // Await prevCharsFuture to get the list of previous characters
   List<Character> prevChars = await prevCharsFuture;
   List<Relationship> prevRels = await prevRelsFuture;
-  
+
   // Populate nodes list with previous characters
   for (Character character in prevChars) {
-    nodes[character.charid ?? 0] = Node(IdButtonWidget(name: character.name, id: character.charid));
+    nodes[character.charid ?? 0] =
+        Node(IdButtonWidget(name: character.name, id: character.charid));
     graph.addNode(nodes[character.charid ?? 0]);
   }
 
   // Create example nodes
 
-
-
   // Check if the table is not empty
 
-  
-  for(Relationship rel in prevRels){
-    graph.addEdge(nodes[rel.charid1], nodes[rel.charid2], paint: Paint()..color = Colors.black);
+  for (Relationship rel in prevRels) {
+    graph.addEdge(nodes[rel.charid1], nodes[rel.charid2], 
+        paint: Paint()..color = Colors.black..strokeWidth = 3);
   }
-
 
   return graph;
 }
+
 final GlobalKey<_MyHomePageState> myHomePageKey = GlobalKey<_MyHomePageState>();
 
 class MyHomePage extends StatefulWidget {
-    const MyHomePage({Key? key}) : super(key: key);
+  const MyHomePage({Key? key}) : super(key: key);
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
 
+class CustomLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Your custom line drawing logic goes here
+    final paint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 2;
+
+    // Sample line
+    canvas.drawLine(Offset(0, 0), Offset(size.width, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return false;
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
-    late Future<Graph> _graphFuture;
+  late Future<Graph> _graphFuture;
+  bool _isDragging = false;
   @override
   void initState() {
     super.initState();
     _graphFuture = loadGraph(); // Initialize the graph in initState.
   }
+
   void reloadData() {
     setState(() {
       // This updates the Future to reload the graph data.
       _graphFuture = loadGraph();
     });
   }
-  
+
   Widget build(BuildContext context) {
     return FutureBuilder<Graph>(
       future: _graphFuture,
@@ -215,36 +231,43 @@ class _MyHomePageState extends State<MyHomePage> {
           // If an error occurred while loading the graph, show an error message
           return Text('Error loading graph: ${snapshot.error}');
         } else {
+
           // If the graph has loaded successfully, display the UI
           var graph = snapshot.data!; // Unwrap the graph from the snapshot
-          for(Node node in graph.nodes){
-            node.position = Offset(120,280);
-          }
+
+          // for(Node node in graph.nodes){
+          //   node.position = Offset(120,280);
+          //   break;
+          // }
+          
           var frAlgo = FruchtermanReingoldAlgorithm();
+          // frAlgo.graphWidth = 100; // Adjust spacing
+          // frAlgo.graphHeight = 100;
+          // frAlgo.attractionRate = .2;
+          // frAlgo.repulsionRate = 3;
 
           return Scaffold(
             appBar: AppBar(title: Text('Home Page')),
             body: Stack(
               alignment: Alignment.center,
               children: [
-                  // Positioned widget for the Sophie button
-          // Positioned widget for the Add Character button
-          Positioned(
-            bottom: 100,
-            child: ElevatedButton(
-            style: StandardButtonTheme.primaryButtonStyle,
-              onPressed: () async{
-                fetchData();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddCharacter()),
-                );
-  
-              },
-              child: Text('Add Character'),
-          ),
-            // ... Existing code for the Add Character button
-          ),
+                // Positioned widget for the Sophie button
+                // Positioned widget for the Add Character button
+                Positioned(
+                  bottom: 100,
+                  child: ElevatedButton(
+                    style: StandardButtonTheme.primaryButtonStyle,
+                    onPressed: () async {
+                      fetchData();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => AddCharacter()),
+                      );
+                    },
+                    child: Text('Add Character'),
+                  ),
+                  // ... Existing code for the Add Character button
+                ),
                 Positioned(
                   bottom: 200, // Adjust the position as needed
                   child: Container(
@@ -272,18 +295,122 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+// class _MyHomePageState extends State<MyHomePage> {
+//   late Future<Graph> _graphFuture;
+//   bool _isDragging = false;
+//   @override
+//   void initState() {
+//     super.initState();
+//     _graphFuture = loadGraph(); // Initialize the graph in initState.
+//   }
+
+//   void reloadData() {
+//     setState(() {
+//       // This updates the Future to reload the graph data.
+//       _graphFuture = loadGraph();
+//     });
+//   }
+
+//   Widget build(BuildContext context) {
+//     return FutureBuilder<Graph>(
+//       future: _graphFuture,
+//       builder: (context, snapshot) {
+//         if (snapshot.connectionState == ConnectionState.waiting) {
+//           // While waiting for the graph to load, you can show a loading indicator
+//           return CircularProgressIndicator();
+//         } else if (snapshot.hasError) {
+//           // If an error occurred while loading the graph, show an error message
+//           return Text('Error loading graph: ${snapshot.error}');
+//         } else {
+
+//           // If the graph has loaded successfully, display the UI
+//           var graph = snapshot.data!; // Unwrap the graph from the snapshot
+
+//           // for(Node node in graph.nodes){
+//           //   node.position = Offset(120,120);
+//           //   break;
+//           // }
+          
+//           var frAlgo = FruchtermanReingoldAlgorithm();
+//           //frAlgo.graphWidth = 100; // Adjust spacing
+//           //frAlgo.graphHeight = 100;
+//           //frAlgo.attractionRate = .2;
+//           //frAlgo.repulsionRate = 3;
+//           //frAlgo.iterations = 0;
+
+//           // if (!_isDragging) {
+//           //   frAlgo.iterations = 0; // Set iterationsPerRender to 0 to disable force calculations
+//           // } else {
+//           //   frAlgo.iterations = 1; // Set iterationsPerRender to 1 to enable force calculations
+//           // }
+
+//           return Scaffold(
+//             appBar: AppBar(title: Text('Home Page')),
+//             body: Stack(
+//               alignment: Alignment.center,
+//               children: [
+//                 // Positioned widget for the Sophie button
+//                 // Positioned widget for the Add Character button
+//                 Positioned(
+//                   bottom: 100,
+//                   child: ElevatedButton(
+//                     style: StandardButtonTheme.primaryButtonStyle,
+//                     onPressed: () async {
+//                       fetchData();
+//                       Navigator.push(
+//                         context,
+//                         MaterialPageRoute(builder: (context) => AddCharacter()),
+//                       );
+//                     },
+//                     child: Text('Add Character'),
+//                   ),
+//                   // ... Existing code for the Add Character button
+//                 ),
+//                 Positioned(
+//                   bottom: 200, // Adjust the position as needed
+//                   child: Container(
+//                     width: 300, // Set the width and height as needed
+//                     height: 550,
+//                       child: GestureDetector(
+//                       onPanStart: (_) {
+//                         setState(() {
+//                           _isDragging = true;
+//                         });
+//                       },
+//                       onPanEnd: (_) {
+//                         setState(() {
+//                           _isDragging = false;
+//                         });
+//                       },
+//                       child: GraphView(
+//                         graph: graph, // Use the loaded graph
+//                         algorithm: frAlgo,
+//                         builder: (Node node) => node.data as Widget,
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           );
+//         }
+//       },
+//     );
+//   }
+// }
 
 int? selectedID;
 String? selectedChar;
+
 class IdButtonWidget extends StatelessWidget {
   final String name;
   final int? id;
   IdButtonWidget({required this.name, required this.id});
-  
+
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () async{
+      onPressed: () async {
         selectedID = this.id;
         selectedChar = this.name;
         Navigator.push(
@@ -293,6 +420,7 @@ class IdButtonWidget extends StatelessWidget {
           ),
         );
       },
+      style: GraphButton.primaryButtonStyle,
       child: Text(name),
     );
   }
@@ -308,23 +436,26 @@ class CharacterPage extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           Positioned(
-          bottom: 600,
-          child: ElevatedButton(
-            style: StandardButtonTheme.primaryButtonStyle,
+            bottom: 600,
+            child: ElevatedButton(
+              style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () {
-                 Future<List<String>> relatedCharacters = getRelatedCharacterNames();
+                Future<List<String>> relatedCharacters =
+                    getRelatedCharacterNames();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => UpdatePage(relatedCharactersFuture: relatedCharacters)),
+                  MaterialPageRoute(
+                      builder: (context) => UpdatePage(
+                          relatedCharactersFuture: relatedCharacters)),
                 );
               },
               child: Text('Update'),
             ),
           ),
           Positioned(
-          bottom: 400,
-          child: ElevatedButton(
-            style: StandardButtonTheme.primaryButtonStyle,
+            bottom: 400,
+            child: ElevatedButton(
+              style: StandardButtonTheme.primaryButtonStyle,
               onPressed: () {
                 deleteChar(selectedID);
                 myHomePageKey.currentState?.reloadData();
@@ -337,10 +468,10 @@ class CharacterPage extends StatelessWidget {
             bottom: 200,
             child: ElevatedButton(
               style: StandardButtonTheme.primaryButtonStyle,
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('Close'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Close'),
             ),
           ),
         ],
@@ -349,9 +480,25 @@ class CharacterPage extends StatelessWidget {
   }
 }
 
+// Future<List<int>> getRelatedCharacterIds(Database db, int charId) async {
+//   final List<Map<String, dynamic>> maps = await db.rawQuery('''
+//     SELECT
+//       CASE
+//         WHEN charid2 = ? THEN charid1
+//         ELSE charid2
+//       END as related_charid
+//     FROM rels
+//     WHERE charid1 = ? OR charid2 = ?
+//   ''', [charId, charId, charId]);
+
+//   // Extract the list of related character IDs.
+//   List<int> relatedCharIds = maps.map((map) => map['related_charid'] as int).toList();
+//   return relatedCharIds;
+// }
+
 Future<List<String>> getRelatedCharacterNames() async {
   // Fetch related character IDs.
-   final db = await database;
+  final db = await database;
 
   final List<Map<String, dynamic>> maps = await db.rawQuery('''
     SELECT 
@@ -362,9 +509,10 @@ Future<List<String>> getRelatedCharacterNames() async {
     FROM rels
     WHERE charid1 = ? OR charid2 = ?
   ''', [selectedID, selectedID, selectedID]);
-  
+
   // Extract the list of related character IDs.
-  List<int> relatedCharIds = maps.map((map) => map['related_charid'] as int).toList();
+  List<int> relatedCharIds =
+      maps.map((map) => map['related_charid'] as int).toList();
 
   // Check if the list is empty to prevent an invalid SQL query.
   if (relatedCharIds.isEmpty) {
@@ -392,12 +540,13 @@ Future<List<String>> getRelatedCharacterNames() async {
 class UpdatePage extends StatelessWidget {
   final Future<List<String>> relatedCharactersFuture;
 
-  UpdatePage({Key? key, required this.relatedCharactersFuture}) : super(key: key);
+  UpdatePage({Key? key, required this.relatedCharactersFuture})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Update Character')),
+      appBar: AppBar(title: Text('Update $selectedChar')),
       body: FutureBuilder<List<String>>(
         future: relatedCharactersFuture,
         builder: (context, snapshot) {
@@ -413,54 +562,49 @@ class UpdatePage extends StatelessWidget {
           }
 
           // Data is fetched successfully, display the names
-          String chars = snapshot.data!.join('\n');
-          return Center (
+          String chars = snapshot.data!.join(',\n');
+          if (chars == "" || chars == '\n') {
+            chars = "None";
+          }
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Container(
-                  width: 300,
-                  height: 500,
-                  color: Color.fromARGB(255, 106, 14, 7),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center, // Centers the text widgets vertically
-                    crossAxisAlignment: CrossAxisAlignment.center, // Centers the text widgets horizontally
-                    children: <Widget>[
-                      Positioned(
-                        top: 50,
-                        child: Text(
-                          'How does this affect:',
-                          textAlign: TextAlign.center, // Centers the text within the Text widget (useful if text wraps)
+                SizedBox(height: 30),
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 50),
+                    width: 300,
+                    decoration: BoxDecoration(
+                      color: Color.fromARGB(255, 106, 14, 7), 
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          "How will this Affect:",
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 32,
+                            fontSize: 25,
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 300,
-                        child: Text(
-                          chars,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 30,
+                        ),
+                        SizedBox(height: 30),
+                        SingleChildScrollView(
+                          child: Text(
+                            chars,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 25,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
-                      )
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  style: StandardButtonTheme.primaryButtonStyle,
-                  onPressed: () {
-                    print('update');
-                    Navigator.pop(context);
-                  },
-                  child: Text('Close'),
-                ),
+                SizedBox(height: 30),
               ],
             ),
           );
@@ -470,13 +614,12 @@ class UpdatePage extends StatelessWidget {
   }
 }
 
-
 class AddCharacter extends StatefulWidget {
   @override
   _AddCharacterState createState() => _AddCharacterState();
 }
 
-Map<String, int?> char_to_id = {}; 
+Map<String, int?> char_to_id = {};
 List<String> options = char_to_id.keys.toList();
 
 void fetchData() async {
@@ -499,7 +642,7 @@ class _AddCharacterState extends State<AddCharacter> {
     super.dispose();
   }
 
-   List<MultiSelectItem<String>> get _items => char_to_id.keys
+  List<MultiSelectItem<String>> get _items => char_to_id.keys
       .map((animal) => MultiSelectItem<String>(animal, animal))
       .toList();
 
@@ -522,7 +665,7 @@ class _AddCharacterState extends State<AddCharacter> {
               ),
             ),
             SizedBox(height: 20),
-             MultiSelectDialogField(
+            MultiSelectDialogField(
               items: _items,
               title: Text("Relationships"),
               selectedColor: Theme.of(context).primaryColor,
@@ -552,32 +695,33 @@ class _AddCharacterState extends State<AddCharacter> {
             SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                
                 onPressed: () async {
                   String nameString = nameController.text;
-                  if(nameString == ""){
+                  if (nameString == "") {
                     showDialog(
                       context: context,
-                      barrierDismissible: false, // Dialog is not dismissed when user taps outside of it
+                      barrierDismissible:
+                          false, // Dialog is not dismissed when user taps outside of it
                       builder: (BuildContext context) => AlertDialog(
                         content: Text("Characters must have a name"),
                       ),
                     );
-                  }
-                  else{
-                  Character character = Character(name: nameString);
-                  insertChar(character);
-                  for(String charName in _selectedOptions){
-                    int? char_id = char_to_id[charName];
-                    final String dbPath = join(await getDatabasesPath(), 'character.db');
-                    final Database database = await openDatabase(dbPath);
+                  } else {
+                    Character character = Character(name: nameString);
+                    insertChar(character);
+                    for (String charName in _selectedOptions) {
+                      int? char_id = char_to_id[charName];
+                      final String dbPath =
+                          join(await getDatabasesPath(), 'character.db');
+                      final Database database = await openDatabase(dbPath);
 
-                    final List<Map> result = await database.rawQuery('SELECT * FROM characters ORDER BY charid DESC LIMIT 1');
+                      final List<Map> result = await database.rawQuery(
+                          'SELECT * FROM characters ORDER BY charid DESC LIMIT 1');
                       int curr_id = result.first['charid'] as int;
                       insertRel(curr_id, char_id);
-                  }
-                  myHomePageKey.currentState?.reloadData();
-                  Navigator.pop(context);
+                    }
+                    myHomePageKey.currentState?.reloadData();
+                    Navigator.pop(context);
                   }
                 },
                 child: Text('Save Character'),
@@ -603,46 +747,34 @@ class Character {
   final int? charid;
   final String name;
 
-  const Character({
-    this.charid,
-    required this.name
-  });
-    Map<String, Object?> toMap() {
-    return {
-      if (charid != null) 'charid': charid,
-      'name': name
-    };
+  const Character({this.charid, required this.name});
+  Map<String, Object?> toMap() {
+    return {if (charid != null) 'charid': charid, 'name': name};
   }
-  
 
   @override
-   String toString() {
+  String toString() {
     return 'Character{id: $charid, name: $name}';
   }
-
 }
 
 class Relationship {
   final int charid1;
   final int charid2;
 
-  const Relationship({
-    required this.charid1,
-    required this.charid2
-  });
-    Map<String, Object?> toMap() {
+  const Relationship({required this.charid1, required this.charid2});
+  Map<String, Object?> toMap() {
     return {
       'charid1': charid1,
       'charid2': charid2,
     };
   }
 
-   @override
-   String toString() {
+  @override
+  String toString() {
     return 'Relationship{charid1: $int?, charid2: $int?}';
   }
 }
-
 
 class CharacterListPage extends StatelessWidget {
   @override
@@ -667,7 +799,6 @@ class CharacterListPage extends StatelessWidget {
                 return ListTile(
                   title: Text(character.name),
                   // You can add more detail like an onTap action or a subtitle for Character ID
-                  
                 );
               },
             );
@@ -681,32 +812,21 @@ class CharacterListPage extends StatelessWidget {
   }
 }
 
-
 class StandardButtonTheme {
   static final ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
-    backgroundColor: Color.fromARGB(255, 106, 14, 7),
-    textStyle: TextStyle(fontSize: 30),
-    foregroundColor: Colors.white,
-    minimumSize: Size(200, 50),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.horizontal())
-  );
+      backgroundColor: Color.fromARGB(255, 106, 14, 7),
+      textStyle: TextStyle(fontSize: 30, fontWeight: FontWeight.w600),
+      foregroundColor: Colors.white,
+      minimumSize: Size(200, 50),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.horizontal()));
 }
 
-// class CustomFruchtermanReingoldAlgorithm extends FruchtermanReingoldAlgorithm {
-//   final double edgeThickness;
-
-//   CustomFruchtermanReingoldAlgorithm({this.edgeThickness = 3.0});
-
-//   @override
-//   void paintEdges(Canvas canvas, List<Edge> edges, Paint paint) {
-//     final thickPaint = Paint()
-//       ..color = paint.color
-//       ..strokeWidth = edgeThickness; // Set your desired thickness here
-
-//     // Invoke the default painting code with a thicker paint for edges
-//     super.paintEdges(canvas, edges, thickPaint);
-//   }
-// }
-
+class GraphButton {
+  static final ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
+      backgroundColor: Color.fromARGB(255, 106, 14, 7),
+      textStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+      foregroundColor: Colors.white,
+  );
+}
 
 // https://docs.flutter.dev/cookbook/persistence/sqlite
