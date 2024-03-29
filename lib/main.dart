@@ -232,6 +232,7 @@ class _MyHomePageState extends State<MyHomePage> {
           content: Text('Are you sure you want to clear the database?'),
           actions: <Widget>[
             ElevatedButton(
+              style: appButton.primaryButtonStyle,
               child: Text('Cancel'),
               onPressed: () {
                 // User has canceled the action, close the dialog returning false
@@ -239,6 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
               },
             ),
             ElevatedButton(
+              style: appButton.primaryButtonStyle,
               child: Text('Clear'),
               onPressed: () {
                 // User has confirmed the action, close the dialog returning true
@@ -712,17 +714,17 @@ class _AddCharacterState extends State<AddCharacter> {
               title: Text("Relationships"),
               selectedColor: Theme.of(context).primaryColor,
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                color: Color.fromARGB(255, 106, 14, 7).withOpacity(0.1),
                 borderRadius: BorderRadius.all(Radius.circular(40)),
                 border: Border.all(
-                  color: Theme.of(context).primaryColor,
+                  color: Color.fromARGB(255, 106, 14, 7),
                   width: 2,
                 ),
               ),
               buttonText: Text(
                 "Select Relationships",
                 style: TextStyle(
-                  color: Theme.of(context).primaryColor,
+                  color: Theme.of(context).hintColor,
                   fontSize: 16,
                 ),
               ),
@@ -737,6 +739,7 @@ class _AddCharacterState extends State<AddCharacter> {
             SizedBox(height: 20),
             Center(
               child: ElevatedButton(
+                style: appButton.primaryButtonStyle,
                 onPressed: () async {
                   String nameString = nameController.text;
                   if (nameString == "") {
@@ -772,6 +775,7 @@ class _AddCharacterState extends State<AddCharacter> {
             SizedBox(height: 20),
             Center(
               child: ElevatedButton(
+                style: appButton.primaryButtonStyle,
                 onPressed: () async {
                   Navigator.pop(context);
                 },
@@ -857,7 +861,7 @@ class CharacterListPage extends StatelessWidget {
 class StandardButtonTheme {
   static final ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: Color.fromARGB(255, 106, 14, 7),
-      textStyle: TextStyle(fontSize: 30, fontWeight: FontWeight.w600),
+      textStyle: TextStyle(fontSize: 30, fontWeight: FontWeight.w400),
       foregroundColor: Colors.white,
       minimumSize: Size(200, 50),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.horizontal()));
@@ -867,6 +871,14 @@ class GraphButton {
   static final ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: Color.fromARGB(255, 106, 14, 7),
       textStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+      foregroundColor: Colors.white,
+  );
+}
+
+class appButton {
+  static final ButtonStyle primaryButtonStyle = ElevatedButton.styleFrom(
+      backgroundColor: Color.fromARGB(255, 106, 14, 7),
+      textStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
       foregroundColor: Colors.white,
   );
 }
