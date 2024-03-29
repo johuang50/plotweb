@@ -97,7 +97,7 @@ Future<List<Character>> characters() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final String dbPath = join(await getDatabasesPath(), 'character.db');
+  //final String dbPath = join(await getDatabasesPath(), 'character.db');
   // await deleteDatabase(dbPath); //THIS L
   database = openDatabase(
     join(await getDatabasesPath(), 'character.db'),
@@ -204,9 +204,10 @@ class CustomLinePainter extends CustomPainter {
   }
 }
 
+
 class _MyHomePageState extends State<MyHomePage> {
   late Future<Graph> _graphFuture;
-  bool _isDragging = false;
+  //bool _isDragging = false;
   @override
   void initState() {
     super.initState();
@@ -219,6 +220,46 @@ class _MyHomePageState extends State<MyHomePage> {
       _graphFuture = loadGraph();
     });
   }
+
+  void _showClearDatabaseConfirmation(BuildContext context) async {
+    // Show the AlertDialog
+    bool? confirmResult = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // User must tap a button to dismiss the dialog
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Confirm'),
+          content: Text('Are you sure you want to clear the database?'),
+          actions: <Widget>[
+            ElevatedButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                // User has canceled the action, close the dialog returning false
+                Navigator.of(dialogContext).pop(false);
+              },
+            ),
+            ElevatedButton(
+              child: Text('Clear'),
+              onPressed: () {
+                // User has confirmed the action, close the dialog returning true
+                Navigator.of(dialogContext).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+  // Check the confirmation result
+  if (confirmResult == true) {
+    // User pressed "Clear", so proceed with clearing the database
+    final String dbPath = join(await getDatabasesPath(), 'character.db');
+    final db = await openDatabase(dbPath);
+    await db.delete("Characters");
+    await db.delete("Rels");
+    reloadData();
+  }
+}
 
   Widget build(BuildContext context) {
     return FutureBuilder<Graph>(
@@ -248,43 +289,44 @@ class _MyHomePageState extends State<MyHomePage> {
 
           return Scaffold(
             appBar: AppBar(title: Text('Home Page')),
-            body: Stack(
-              alignment: Alignment.center,
+            body: Column(
+              mainAxisAlignment: MainAxisAlignment.center, 
+              crossAxisAlignment: CrossAxisAlignment.center, 
               children: [
-                // Positioned widget for the Sophie button
-                // Positioned widget for the Add Character button
-                Positioned(
-                  bottom: 100,
-                  child: ElevatedButton(
-                    style: StandardButtonTheme.primaryButtonStyle,
-                    onPressed: () async {
-                      fetchData();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => AddCharacter()),
-                      );
-                    },
-                    child: Text('Add Character'),
-                  ),
-                  // ... Existing code for the Add Character button
+                ElevatedButton(
+                  style: StandardButtonTheme.primaryButtonStyle,
+                  onPressed: () async {
+                    _showClearDatabaseConfirmation(context);
+                  },
+                  child: Text('Clear All'),
                 ),
-                Positioned(
-                  bottom: 200, // Adjust the position as needed
-                  child: Container(
-                    width: 300, // Set the width and height as needed
-                    height: 550,
-                    child: InteractiveViewer(
-                      constrained: false,
-                      boundaryMargin: EdgeInsets.all(100),
-                      minScale: 0.01,
-                      maxScale: 5.0,
-                      child: GraphView(
-                        graph: graph, // Use the loaded graph
-                        algorithm: frAlgo,
-                        builder: (Node node) => node.data as Widget,
-                      ),
+                SizedBox(height: 20), 
+                Container(
+                  //width: 300, 
+                  height: 350, 
+                  child: InteractiveViewer(
+                    constrained: false,
+                    boundaryMargin: EdgeInsets.all(100),
+                    minScale: 0.01,
+                    maxScale: 5.0,
+                    child: GraphView(
+                      graph: graph,
+                      algorithm: frAlgo,
+                      builder: (Node node) => node.data as Widget,
                     ),
                   ),
+                ),
+                SizedBox(height: 20), 
+                ElevatedButton(
+                  style: StandardButtonTheme.primaryButtonStyle,
+                  onPressed: () async {
+                    fetchData();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AddCharacter()),
+                    );
+                  },
+                  child: Text('Add Character'),
                 ),
               ],
             ),
@@ -428,8 +470,8 @@ class IdButtonWidget extends StatelessWidget {
 
 class CharacterPage extends StatelessWidget {
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
+    //var appState = context.watch<MyAppState>();
+    //var pair = appState.current;
     return Scaffold(
       appBar: AppBar(title: Text('$selectedChar')),
       body: Stack(
