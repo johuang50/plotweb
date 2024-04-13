@@ -305,7 +305,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 SizedBox(height: 20), 
                 Container(
                   //width: 300, 
-                  height: 350, 
+                  height: 500, 
                   child: InteractiveViewer(
                     constrained: false,
                     boundaryMargin: EdgeInsets.all(100),
@@ -676,9 +676,15 @@ void fetchData() async {
   });
 }
 
+class CharRelationship {
+  String name;
+  String description;
+  CharRelationship({required this.name, this.description = ""});
+}
+
 class _AddCharacterState extends State<AddCharacter> {
   TextEditingController nameController = TextEditingController();
-  List<String> _selectedOptions = [];
+  List<CharRelationship> _selectedOptions = [];
 
   @override
   void dispose() {
@@ -689,6 +695,82 @@ class _AddCharacterState extends State<AddCharacter> {
   List<MultiSelectItem<String>> get _items => char_to_id.keys
       .map((animal) => MultiSelectItem<String>(animal, animal))
       .toList();
+
+  Future<List<CharRelationship>> _showCharacterSelectionDialog(BuildContext context) async {
+    List<CharRelationship> tempSelectedOptions = [..._selectedOptions];
+    final List<CharRelationship>? result = await showDialog<List<CharRelationship>>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Select Relationships'),
+          content: SingleChildScrollView(
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return ListBody(
+                  children: _items.map((item) {
+                    var index = tempSelectedOptions.indexWhere((cr) => cr.name == item.value);
+                    bool isChecked = index != -1;
+                    String description = isChecked ? tempSelectedOptions[index].description : "";
+
+                    return CheckboxListTile(
+                      value: isChecked,
+                      onChanged: (bool? checked) {
+                        setState(() {
+                          if (checked == true) {
+                            tempSelectedOptions.add(CharRelationship(name: item.value, description: description));
+                          } else {
+                            tempSelectedOptions.removeWhere((element) => element.name == item.value);
+                          }
+                        });
+                      },
+                      title: Column(
+                        children: [
+                          Text(item.value),
+                          if (isChecked)
+                            TextField(
+                              onChanged: (text) {
+                                // Update the description for the character.
+                                int i = tempSelectedOptions.indexWhere((cr) => cr.name == item.value);
+                                tempSelectedOptions[i].description = text;
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Relationship',
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop(null);
+              },
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                Navigator.of(context).pop(tempSelectedOptions);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedOptions = result;
+      });
+    }
+
+    return result ?? _selectedOptions;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -709,33 +791,15 @@ class _AddCharacterState extends State<AddCharacter> {
               ),
             ),
             SizedBox(height: 20),
-            MultiSelectDialogField(
-              items: _items,
-              title: Text("Relationships"),
-              selectedColor: Theme.of(context).primaryColor,
-              decoration: BoxDecoration(
-                color: Color.fromARGB(255, 106, 14, 7).withOpacity(0.1),
-                borderRadius: BorderRadius.all(Radius.circular(40)),
-                border: Border.all(
-                  color: Color.fromARGB(255, 106, 14, 7),
-                  width: 2,
-                ),
-              ),
-              buttonText: Text(
-                "Select Relationships",
-                style: TextStyle(
-                  color: Theme.of(context).hintColor,
-                  fontSize: 16,
-                ),
-              ),
-              onConfirm: (values) {
+            ElevatedButton(
+              onPressed: () async {
+                List<CharRelationship> result = await _showCharacterSelectionDialog(context);
                 setState(() {
-                  _selectedOptions = values;
+                  _selectedOptions = result;
                 });
               },
-              initialValue: _selectedOptions,
+              child: Text("Select Relationships"),
             ),
-            SizedBox(height: 20),
             SizedBox(height: 20),
             Center(
               child: ElevatedButton(
@@ -754,8 +818,8 @@ class _AddCharacterState extends State<AddCharacter> {
                   } else {
                     Character character = Character(name: nameString);
                     insertChar(character);
-                    for (String charName in _selectedOptions) {
-                      int? char_id = char_to_id[charName];
+                    for (CharRelationship rel in _selectedOptions) {
+                      int? char_id = char_to_id[rel.name];
                       final String dbPath =
                           join(await getDatabasesPath(), 'character.db');
                       final Database database = await openDatabase(dbPath);
@@ -788,6 +852,33 @@ class _AddCharacterState extends State<AddCharacter> {
     );
   }
 }
+
+// MultiSelectDialogField(
+//               items: _items,
+//               title: Text("Select Relationships"),
+//               selectedColor: Theme.of(context).primaryColor,
+//               decoration: BoxDecoration(
+//                 color: Color.fromARGB(255, 106, 14, 7).withOpacity(0.1),
+//                 borderRadius: BorderRadius.all(Radius.circular(40)),
+//                 border: Border.all(
+//                   color: Color.fromARGB(255, 106, 14, 7),
+//                   width: 2,
+//                 ),
+//               ),
+//               buttonText: Text(
+//                 "Select Relationships",
+//                 style: TextStyle(
+//                   color: Theme.of(context).hintColor,
+//                   fontSize: 16,
+//                 ),
+//               ),
+//               onConfirm: (values) {
+//                 setState(() {
+//                   _selectedOptions = values;
+//                 });
+//               },
+//               initialValue: _selectedOptions,
+//             ),
 
 class Character {
   final int? charid;
