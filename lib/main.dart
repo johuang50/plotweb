@@ -286,8 +286,8 @@ class _MyHomePageState extends State<MyHomePage> {
           var frAlgo = FruchtermanReingoldAlgorithm();
           // frAlgo.graphWidth = 100; // Adjust spacing
           // frAlgo.graphHeight = 100;
-          // frAlgo.attractionRate = .2;
-          // frAlgo.repulsionRate = 3;
+          frAlgo.attractionRate = .005;
+          frAlgo.repulsionRate = 2;
 
           return Scaffold(
             appBar: AppBar(title: Text('Home Page')),
