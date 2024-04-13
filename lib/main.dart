@@ -174,6 +174,8 @@ Future<Graph> loadGraph() async {
         paint: Paint()..color = Colors.black..strokeWidth = 3);
   }
 
+  centerGraph(nodes, Size(300, 350));
+
   return graph;
 }
 
@@ -972,6 +974,38 @@ class appButton {
       textStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w400),
       foregroundColor: Colors.white,
   );
+}
+
+void centerGraph(List<Node> nodes, Size viewSize) {
+  if (nodes.isEmpty) return;
+
+  // Get the bounding box of the graph
+  double minX = double.infinity;
+  double minY = double.infinity;
+  double maxX = double.negativeInfinity;
+  double maxY = double.negativeInfinity;
+
+  for (Node node in nodes) {
+    minX = min(minX, node.position.dx);
+    minY = min(minY, node.position.dy);
+    maxX = max(maxX, node.position.dx);
+    maxY = max(maxY, node.position.dy);
+  }
+
+  // Calculate the center of the bounding box
+  double centerX = (minX + maxX) / 2;
+  double centerY = (minY + maxY) / 2;
+
+  // Determine the translation needed to move the graph's center to the view's center
+  double shiftX = viewSize.width / 2 - centerX;
+  double shiftY = viewSize.height / 2 - centerY;
+
+  // Translate all nodes by the determined amount
+  for (Node node in nodes) {
+    node.position = Offset(node.position.dx + shiftX, node.position.dy + shiftY);
+  }
+
+  // Now the nodes are centered, you would redraw the graph here
 }
 
 // https://docs.flutter.dev/cookbook/persistence/sqlite
