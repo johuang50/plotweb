@@ -116,29 +116,11 @@ Future<List<Character>> characters() async {
   ];
 }
 
-Future<void> printRelationships() async {
-  // Ensure that the database has been opened and assigned to the 'database' variable
-  if (database == null) {
-    print('Error: Database is not open.');
-    return;
-  }
-
-  // Query the database to retrieve all relationships with descriptions
-  final List<Map<String, dynamic>> relationships = await database.query('Rels');
-
-  // Print each relationship along with its description
-  for (final relationship in relationships) {
-    print('charid1: ${relationship['charid1']}');
-    print('charid2: ${relationship['charid2']}');
-    print('Description: ${relationship['description']}');
-    print('---');
-  }
-}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final String dbPath = join(await getDatabasesPath(), 'character.db');
-  await deleteDatabase(dbPath); //THIS L
+  //await deleteDatabase(dbPath); //THIS L
 
   database = openDatabase(
     join(await getDatabasesPath(), 'character.db'),
@@ -158,7 +140,6 @@ void main() async {
   );
 
   runApp(MyApp());
-  await printRelationships();
 }
 
 class MyApp extends StatelessWidget {
@@ -492,11 +473,12 @@ Future<List<String>> getRelatedCharacterNames() async {
       CASE 
         WHEN charid2 = ? THEN charid1 
         ELSE charid2 
-      END as related_charid
+      END as related_charid, description
     FROM rels
     WHERE charid1 = ? OR charid2 = ?
   ''', [selectedID, selectedID, selectedID]);
 
+  print(maps);
   // Extract the list of related character IDs.
   List<int> relatedCharIds =
       maps.map((map) => map['related_charid'] as int).toList();
@@ -520,12 +502,22 @@ Future<List<String>> getRelatedCharacterNames() async {
 
   // Map the result to a list of names.
   List<String> names = namesResult.map((row) => row['name'] as String).toList();
-
+  List<String> relatedesc = maps.map((map) => map['description'] as String).toList();
+  // Using forEach method
+  for (int i = 0; i < names.length; i++) {
+    // Edit the name (for example, add a prefix)
+    print(names[i]);
+    names[i] = names[i] + " (" + relatedesc[i] + ")";
+    print(names[i]);
+  }
+  
   return names;
 }
 
+
 class UpdatePage extends StatelessWidget {
   final Future<List<String>> relatedCharactersFuture;
+  //Future<List<Relationship>> prevRelsFuture = relationships();
 
   UpdatePage({Key? key, required this.relatedCharactersFuture})
       : super(key: key);
