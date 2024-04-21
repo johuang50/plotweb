@@ -28,6 +28,27 @@ Future<void> insertChar(Character character) async {
   );
 }
 
+Future<void> insertRelDesc(int? character1, int? character2, String? description) async {
+  // Get a reference to the database.
+  final db = await database;
+
+  // Determine the IDs to insert, ensuring id1 is always less than id2
+  int charid1 = min(character1!, character2!);
+  int charid2 = max(character1, character2);
+  // Create a Relationships object with the determined IDs
+  Relationship relationship = Relationship(charid1: charid1, charid2: charid2, description: description);
+
+  // Insert the relationship into the database
+  Map<String, Object?> temp = relationship.toMap();
+  print(temp);
+  print(temp['description']);
+  await db.insert(
+    'Rels',
+    temp,
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+}
+
 Future<void> insertRel(int? character1, int? character2) async {
   // Get a reference to the database.
   final db = await database;
@@ -95,10 +116,30 @@ Future<List<Character>> characters() async {
   ];
 }
 
+Future<void> printRelationships() async {
+  // Ensure that the database has been opened and assigned to the 'database' variable
+  if (database == null) {
+    print('Error: Database is not open.');
+    return;
+  }
+
+  // Query the database to retrieve all relationships with descriptions
+  final List<Map<String, dynamic>> relationships = await database.query('Rels');
+
+  // Print each relationship along with its description
+  for (final relationship in relationships) {
+    print('charid1: ${relationship['charid1']}');
+    print('charid2: ${relationship['charid2']}');
+    print('Description: ${relationship['description']}');
+    print('---');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  //final String dbPath = join(await getDatabasesPath(), 'character.db');
-  // await deleteDatabase(dbPath); //THIS L
+  final String dbPath = join(await getDatabasesPath(), 'character.db');
+  await deleteDatabase(dbPath); //THIS L
+
   database = openDatabase(
     join(await getDatabasesPath(), 'character.db'),
     onCreate: (db, version) async {
@@ -107,7 +148,7 @@ void main() async {
         'CREATE TABLE Characters(charid INTEGER PRIMARY KEY, name TEXT) ',
       );
       await db.execute(
-        'CREATE TABLE Rels(charid1 INTEGER, charid2 INTEGER, ' +
+        'CREATE TABLE Rels(charid1 INTEGER, charid2 INTEGER, description String, ' +
             'PRIMARY KEY (charid1, charid2), FOREIGN KEY (charid1) references Characters(charid) ON DELETE CASCADE, FOREIGN KEY (charid2) references Characters(charid) ON DELETE CASCADE) ',
       );
     },
@@ -117,6 +158,7 @@ void main() async {
   );
 
   runApp(MyApp());
+  await printRelationships();
 }
 
 class MyApp extends StatelessWidget {
@@ -168,8 +210,9 @@ Future<Graph> loadGraph() async {
   // Create example nodes
 
   // Check if the table is not empty
-
+  
   for (Relationship rel in prevRels) {
+    print(rel.description);
     graph.addEdge(nodes[rel.charid1], nodes[rel.charid2],
         paint: Paint()..color = Colors.black..strokeWidth = 3);
   }
@@ -341,109 +384,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-// class _MyHomePageState extends State<MyHomePage> {
-//   late Future<Graph> _graphFuture;
-//   bool _isDragging = false;
-//   @override
-//   void initState() {
-//     super.initState();
-//     _graphFuture = loadGraph(); // Initialize the graph in initState.
-//   }
 
-//   void reloadData() {
-//     setState(() {
-//       // This updates the Future to reload the graph data.
-//       _graphFuture = loadGraph();
-//     });
-//   }
-
-//   Widget build(BuildContext context) {
-//     return FutureBuilder<Graph>(
-//       future: _graphFuture,
-//       builder: (context, snapshot) {
-//         if (snapshot.connectionState == ConnectionState.waiting) {
-//           // While waiting for the graph to load, you can show a loading indicator
-//           return CircularProgressIndicator();
-//         } else if (snapshot.hasError) {
-//           // If an error occurred while loading the graph, show an error message
-//           return Text('Error loading graph: ${snapshot.error}');
-//         } else {
-
-//           // If the graph has loaded successfully, display the UI
-//           var graph = snapshot.data!; // Unwrap the graph from the snapshot
-
-//           // for(Node node in graph.nodes){
-//           //   node.position = Offset(120,120);
-//           //   break;
-//           // }
-          
-//           var frAlgo = FruchtermanReingoldAlgorithm();
-//           //frAlgo.graphWidth = 100; // Adjust spacing
-//           //frAlgo.graphHeight = 100;
-//           //frAlgo.attractionRate = .2;
-//           //frAlgo.repulsionRate = 3;
-//           //frAlgo.iterations = 0;
-
-//           // if (!_isDragging) {
-//           //   frAlgo.iterations = 0; // Set iterationsPerRender to 0 to disable force calculations
-//           // } else {
-//           //   frAlgo.iterations = 1; // Set iterationsPerRender to 1 to enable force calculations
-//           // }
-
-//           return Scaffold(
-//             appBar: AppBar(title: Text('Home Page')),
-//             body: Stack(
-//               alignment: Alignment.center,
-//               children: [
-//                 // Positioned widget for the Sophie button
-//                 // Positioned widget for the Add Character button
-//                 Positioned(
-//                   bottom: 100,
-//                   child: ElevatedButton(
-//                     style: StandardButtonTheme.primaryButtonStyle,
-//                     onPressed: () async {
-//                       fetchData();
-//                       Navigator.push(
-//                         context,
-//                         MaterialPageRoute(builder: (context) => AddCharacter()),
-//                       );
-//                     },
-//                     child: Text('Add Character'),
-//                   ),
-//                   // ... Existing code for the Add Character button
-//                 ),
-//                 Positioned(
-//                   bottom: 200, // Adjust the position as needed
-//                   child: Container(
-//                     width: 300, // Set the width and height as needed
-//                     height: 550,
-//                       child: GestureDetector(
-//                       onPanStart: (_) {
-//                         setState(() {
-//                           _isDragging = true;
-//                         });
-//                       },
-//                       onPanEnd: (_) {
-//                         setState(() {
-//                           _isDragging = false;
-//                         });
-//                       },
-//                       child: GraphView(
-//                         graph: graph, // Use the loaded graph
-//                         algorithm: frAlgo,
-//                         builder: (Node node) => node.data as Widget,
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           );
-//         }
-//       },
-//     );
-//   }
-// }
 
 int? selectedID;
 String? selectedChar;
@@ -829,7 +770,12 @@ class _AddCharacterState extends State<AddCharacter> {
                       final List<Map> result = await database.rawQuery(
                           'SELECT * FROM characters ORDER BY charid DESC LIMIT 1');
                       int curr_id = result.first['charid'] as int;
-                      insertRel(curr_id, char_id);
+                      if(rel.description != ""){
+                        insertRelDesc(curr_id, char_id, rel.description);
+                      }
+                      else{
+                        insertRel(curr_id, char_id);
+                      }
                     }
                     myHomePageKey.currentState?.reloadData();
                     Navigator.pop(context);
@@ -900,18 +846,19 @@ class Character {
 class Relationship {
   final int charid1;
   final int charid2;
-
-  const Relationship({required this.charid1, required this.charid2});
+  final String? description;
+  const Relationship({required this.charid1, required this.charid2, this.description});
   Map<String, Object?> toMap() {
     return {
       'charid1': charid1,
       'charid2': charid2,
+      'description': description
     };
   }
 
   @override
   String toString() {
-    return 'Relationship{charid1: $int?, charid2: $int?}';
+    return 'Relationship{charid1: $int?, charid2: $int?, description: $String?}';
   }
 }
 
