@@ -1,7 +1,7 @@
 # PlotWeb
 
 ## Authors
-Joshua Huang (@johuang50), Maya Alam, Jad Yazbeck, Luciana Solorzano
+Joshua Huang, Maya Alam, Jad Yazbeck, Luciana Solorzano
 
 ## Overview
 
